@@ -1,0 +1,38 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Sơ đồ phòng - Phòng trọ Năm Lộc{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-bordered align-middle text-center mb-0">
+            <thead>
+                <tr>
+                    <th>Tên Phòng</th>
+                    <th>Trạng Thái</th>
+                    <th>Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for room in rooms %}
+                <tr>
+                    <td class="fw-bold">{{ room.room_name }}</td>
+                    <td>
+                        {% if room.is_rented %}
+                            <span class="badge-status bg-light text-dark fw-bold">Đang cho thuê</span>
+                        {% else %}
+                            <span class="badge-status text-muted">Phòng trống</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('views.room_detail', room_id=room.id) }}" class="btn btn-sm btn-dark">Xem Chi Tiết</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu phòng trọ.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

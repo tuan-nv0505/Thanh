@@ -1,0 +1,87 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Chi Tiết {{ room.room_name }}{% endblock %}
+
+{% block extra_head %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('views.index') }}" class="btn btn-sm btn-outline-dark mb-4">&larr; Quay lại sơ đồ</a>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="text-uppercase">Thông tin: {{ room.room_name }}</span>
+        <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#editRoomModal">
+            Sửa Thông Tin
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <strong>Mô tả phòng:</strong>
+            <span class="text-muted">{{ room.description if room.description else 'Chưa có thông tin mô tả.' }}</span>
+        </div>
+        <div class="mb-3">
+            <strong>Trạng thái:</strong>
+            <span class="text-muted">{{ 'Đang cho thuê' if room.is_rented else 'Phòng trống' }}</span>
+        </div>
+        <div class="row text-center border-top pt-3">
+            <div class="col-md-4 border-end">
+                <p class="text-muted mb-1">Giá thuê phòng / Tháng</p>
+                <h5 class="mb-0">{{ "{:,.0f}".format(room.monthly_rent) }} đ</h5>
+            </div>
+            <div class="col-md-4 border-end">
+                <p class="text-muted mb-1">Phí Wifi</p>
+                <h5 class="mb-0">{{ "{:,.0f}".format(room.wifi_fee) }} đ</h5>
+            </div>
+            <div class="col-md-4">
+                <p class="text-muted mb-1">Phí Rác</p>
+                <h5 class="mb-0">{{ "{:,.0f}".format(room.trash_fee) }} đ</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="text-uppercase">Danh sách Nhóm Thuê</span>
+        <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#addGroupModal">
+            + Thêm Nhóm Mới
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle text-center mb-0">
+                <thead>
+                <tr>
+                    <th>Tên Nhóm / Đại diện</th>
+                    <th>Tiền Cọc (VNĐ)</th>
+                    <th>Thao Tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for group in groups %}
+                <tr>
+                    <td class="fw-bold text-start ps-4">{{ group.group_name }}</td>
+                    <td>{{ "{:,.0f}".format(group.deposit_amount) }} đ</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-dark fw-bold me-1" data-bs-toggle="modal"
+                                data-bs-target="#createInvoiceModal{{ group.id }}">
+                            Lập Hóa Đơn
+                        </button>
+                        <a href="{{ url_for('views.group_detail', group_id=group.id) }}"
+                           class="btn btn-sm btn-dark me-1">Khách thuê ({{ group.customers | selectattr('active', 'equalto', True) | list | length }})</a>
+                        <button class="btn btn-sm btn-outline-dark me-1" data-bs-toggle="modal" data-bs-target="#editGroupModal{{ group.id }}">Sửa</button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="apiDelete('/api/groups/{{ group.id }}', 'Xác nhận xóa nhóm này?')">Xóa</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="text-muted py-4">Phòng hiện đang trống.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

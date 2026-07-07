@@ -1,0 +1,18 @@
+/* Ép tất cả trở nên vuông vức, không bo góc, không đổ bóng */
+* { border-radius: 0 !important; box-shadow: none !important; }
+body { background-color: #ffffff; color: #333; }
+
+/* Các thành phần Card và Table */
+.card { border: 1px solid #dee2e6; margin-bottom: 1.5rem; }
+.card-header { background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; color: #000; font-weight: bold; }
+.table th { background-color: #f8f9fa; border-bottom: 2px solid #333; }
+
+/* Trạng thái và Tag Đại diện */
+.badge-status { padding: 4px 8px; border: 1px solid #333; font-size: 0.85em; }
+.rep-badge { font-size: 0.7rem; padding: 3px 6px; background-color: #000; color: #fff; margin-left: 8px; }
+
+/* Checkbox và Modals */
+.form-check-input { border-radius: 0; border: 1px solid #000; }
+.form-check-input:checked { background-color: #000; border-color: #000; }
+.modal-content { border: 1px solid #000; }
+.modal-header { background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; }
