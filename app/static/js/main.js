@@ -79,7 +79,20 @@ function showInvoiceModal(data) {
         rowDeduct.classList.add('d-none');
     }
 
-    document.getElementById('billTotal').innerText = `${data.total.toLocaleString('vi-VN')} đ`;
+    // Xử lý hiển thị Tổng trên Bill in (CẬP NHẬT HOÀN TIỀN / THANH TOÁN)
+    const billTotalLabel = document.getElementById('billTotalLabel');
+    const billTotalEl = document.getElementById('billTotal');
+
+    // Trong Backend (dao.py), total = Các phí - deducted_deposit
+    // Nên nếu tiền cọc lớn hơn các phí, data.total sẽ bị ÂM
+    if (data.total < 0) {
+        if (billTotalLabel) billTotalLabel.innerText = "TIỀN HOÀN KHÁCH:";
+        // Dùng Math.abs() để lấy số dương hiển thị cho đẹp
+        billTotalEl.innerText = Math.abs(data.total).toLocaleString('vi-VN') + ' đ';
+    } else {
+        if (billTotalLabel) billTotalLabel.innerText = "KHÁCH THANH TOÁN:";
+        billTotalEl.innerText = data.total.toLocaleString('vi-VN') + ' đ';
+    }
 
     // Hiển thị Modal
     const receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
@@ -120,6 +133,7 @@ async function apiDelete(url, msg) {
     }
 }
 
+// Hàm xử lý logic tính toán ngay trong Modal lập hóa đơn
 function tinhTongTien(groupId, monthlyRent, wifiFee, trashFee) {
     const modal = document.getElementById('createInvoiceModal' + groupId);
     if (!modal) return;
@@ -145,14 +159,13 @@ function tinhTongTien(groupId, monthlyRent, wifiFee, trashFee) {
 
     let rentDaysStr = '';
 
-    // Nếu điền đủ cả 2 ngày
     if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
         const start = new Date(startDateInput.value);
         const end = new Date(endDateInput.value);
         const diffTime = end - start;
 
         if (diffTime >= 0) {
-            const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Tính khoảng cách số ngày
+            const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             rentDaysStr = days.toString();
 
             if (hiddenRentDays) hiddenRentDays.value = days;
@@ -223,17 +236,32 @@ function tinhTongTien(groupId, monthlyRent, wifiFee, trashFee) {
         }
     }
 
-    // 6. Tính Tổng
-    let total = roomCost + eCost + wCost + appliedWifi + appliedTrash - deductAmount;
-    if (total < 0) total = 0;
+    // 6. Tính Tổng (CẬP NHẬT HOÀN TIỀN / THANH TOÁN)
+    let subTotal = roomCost + eCost + wCost + appliedWifi + appliedTrash;
+    let diff = deductAmount - subTotal; // Lấy tiền cọc trừ đi khoản tổng
 
     const previewTotalElement = modal.querySelector('#previewTotal' + groupId);
-    if (previewTotalElement) {
-        previewTotalElement.innerText = total.toLocaleString('vi-VN') + ' đ';
+    const previewTotalLabel = modal.querySelector('#previewTotalLabel' + groupId);
+
+    if (diff > 0) {
+        // Dương -> Tiền cọc đang giữ lớn hơn tổng chi phí -> Hoàn lại tiền cho khách
+        if (previewTotalLabel) previewTotalLabel.innerText = "TIỀN HOÀN KHÁCH:";
+        if (previewTotalElement) {
+            previewTotalElement.innerText = diff.toLocaleString('vi-VN') + ' đ';
+            previewTotalElement.className = "fw-bold fs-5 text-success"; // Đổi màu xanh lá báo hiệu tiền hoàn
+        }
+    } else {
+        // Âm hoặc bằng 0 -> Tiền cọc không đủ hoặc không dùng cọc -> Khách phải thanh toán thêm
+        let toPay = Math.abs(diff);
+        if (previewTotalLabel) previewTotalLabel.innerText = "KHÁCH THANH TOÁN:";
+        if (previewTotalElement) {
+            previewTotalElement.innerText = toPay.toLocaleString('vi-VN') + ' đ';
+            previewTotalElement.className = "fw-bold fs-5 text-danger"; // Đổi màu đỏ báo hiệu khoản cần trả
+        }
     }
 }
 
-// BỔ SUNG SỰ KIỆN: Tự động chạy tính toán ngay khi Modal Lập Hóa Đơn được mở
+// Tự động chạy tính toán ngay khi Modal Lập Hóa Đơn được mở
 document.addEventListener('DOMContentLoaded', function() {
     const invoiceModals = document.querySelectorAll('[id^="createInvoiceModal"]');
     invoiceModals.forEach(modal => {

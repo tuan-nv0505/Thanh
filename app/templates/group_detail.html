@@ -5,13 +5,161 @@
 {% block content %}
 <a href="{{ url_for('views.room_detail', room_id=group.room_id) }}" class="btn btn-sm btn-outline-dark mb-4">&larr; Quay lại Phòng {{ group.room.room_name }}</a>
 
-<div class="card">
+<div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span class="text-uppercase">Thành viên: {{ group.group_name }}</span>
         <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
             + Thêm Thành Viên
         </button>
     </div>
-    
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle text-center mb-0">
+                <thead>
+                    <tr>
+                        <th>Họ Tên</th>
+                        <th>Giới tính</th>
+                        <th>SĐT</th>
+                        <th>CCCD</th>
+                        <th>Quê quán</th>
+                        <th>Ngày vào</th>
+                        <th>Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cus in customers %}
+                    <tr class="{% if cus.is_representative %}bg-light{% endif %}">
+                        <td class="text-start ps-3">
+                            <span class="fw-bold">{{ cus.customer_name }}</span>
+                            {% if cus.is_representative %}
+                                <span class="rep-badge">ĐẠI DIỆN</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ cus.gender }}</td>
+                        <td>{{ cus.phone_number }}</td>
+                        <td>{{ cus.person_id }}</td>
+                        <td>{{ cus.address }}</td>
+                        <td>{{ cus.move_in_date.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#editCustomerModal{{ cus.id }}">Sửa</button>
+
+                            {% if cus.is_representative and customers|length > 1 %}
+                                <button type="button" class="btn btn-sm btn-danger" onclick="alert('⛔ LỖI: Không thể xóa!\n\nNgười này đang là ĐẠI DIỆN HỢP ĐỒNG. Vui lòng Bấm nút [Sửa] của một thành viên khác và đánh dấu họ làm Đại diện mới trước khi xóa người này.');">Xóa</button>
+                            {% else %}
+                                <button type="button" class="btn btn-sm btn-danger" onclick="apiDelete('/api/customers/{{ cus.id }}', 'Xóa khách hàng này?')">Xóa</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-muted py-4">Chưa có khách hàng nào trong nhóm.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
+</div>
+
+{% for cus in customers %}
+<div class="modal fade" id="editCustomerModal{{ cus.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <form onsubmit="apiSubmit(event, '/api/customers/{{ cus.id }}', 'PUT')" class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title text-uppercase">Sửa Khách Hàng</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-start">
+                <div class="form-check mb-3 p-3 bg-light border">
+                    <input class="form-check-input" type="checkbox" name="is_representative" id="repCheck{{ cus.id }}" {% if cus.is_representative %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="repCheck{{ cus.id }}">
+                        CHỈ ĐỊNH LÀ NGƯỜI ĐẠI DIỆN HỢP ĐỒNG
+                    </label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Họ và Tên</label>
+                    <input type="text" name="customer_name" class="form-control" value="{{ cus.customer_name }}" required>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Giới tính</label>
+                        <select name="gender" class="form-select" required>
+                            <option value="Nam" {% if cus.gender == 'Nam' %}selected{% endif %}>Nam</option>
+                            <option value="Nữ" {% if cus.gender == 'Nữ' %}selected{% endif %}>Nữ</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">CCCD / CMND</label>
+                        <input type="text" name="person_id" class="form-control" value="{{ cus.person_id }}" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Số điện thoại</label>
+                        <input type="text" name="phone_number" class="form-control" value="{{ cus.phone_number }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Quê quán / Địa chỉ</label>
+                        <input type="text" name="address" class="form-control" value="{{ cus.address }}" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-sm btn-outline-dark" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn btn-sm btn-dark">Lưu Thay Đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<div class="modal fade" id="addCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form onsubmit="apiSubmit(event, '/api/groups/{{ group.id }}/customers', 'POST')" class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title text-uppercase">Thêm Thành Viên Mới</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-check mb-3 p-3 bg-light border">
+                    <input class="form-check-input" type="checkbox" name="is_representative" id="addRepCheck">
+                    <label class="form-check-label fw-bold" for="addRepCheck">
+                        CHỈ ĐỊNH LÀ NGƯỜI ĐẠI DIỆN HỢP ĐỒNG
+                    </label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Họ và Tên</label>
+                    <input type="text" name="customer_name" class="form-control" required>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Giới tính</label>
+                        <select name="gender" class="form-select" required>
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">CCCD / CMND</label>
+                        <input type="text" name="person_id" class="form-control" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Số điện thoại</label>
+                        <input type="text" name="phone_number" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Quê quán / Địa chỉ</label>
+                        <input type="text" name="address" class="form-control" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-sm btn-outline-dark" data-bs-dismiss="modal">Đóng</button>
+                <button type="submit" class="btn btn-sm btn-dark">Lưu Khách Hàng</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
