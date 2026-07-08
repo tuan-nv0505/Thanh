@@ -115,53 +115,14 @@ function showInvoiceReceipt(data, roomWifi = 0, roomTrash = 0) {
     // Hiển thị modal
     document.getElementById('receiptModal').showModal();
 }
-// =================================================================
-// XỬ LÝ CHỤP ẢNH HÓA ĐƠN TỐI ƯU CHO CẢ PC LẪN MOBILE
-// =================================================================
 function saveInvoiceImage() {
     const content = document.getElementById('invoiceReceiptContent');
     const name = document.getElementById('billRoom').innerText;
-
-    // Lưu lại giao diện gốc phòng trường hợp cần thiết
-    if (!window.originalReceiptHTML) {
-        window.originalReceiptHTML = content.innerHTML;
-    }
-
-    // Cấu hình html2canvas để trị lỗi trên Mobile
-    html2canvas(content, {
-        scale: 2,                      // Tăng độ nét ảnh lên gấp đôi (rõ chữ khi zoom)
-        useCORS: true,                 // Xử lý lỗi phông chữ chéo
-        backgroundColor: "#f4f4f5",    // Khớp với màu nền Light Theme
-        scrollY: -window.scrollY,      // Fix lỗi chụp ra ảnh đen/trắng khi cuộn trang trên iOS
-        windowWidth: document.documentElement.offsetWidth,
-        windowHeight: document.documentElement.offsetHeight
-    }).then(canvas => {
-        const imgData = canvas.toDataURL("image/png");
-
-        // 1. DÀNH CHO ĐIỆN THOẠI: Thay thế mã HTML bằng thẻ <img> thật
-        // Để người dùng có thể "Nhấn giữ để lưu" chuẩn hành vi Mobile
-        content.innerHTML = `
-            <div style="text-align: center; padding: 1rem; animation: fadeIn 0.3s;">
-                <div style="color: #dc2626; font-weight: 600; font-size: 0.85rem; margin-bottom: 1.25rem; padding: 0.75rem; background: #fee2e2; border-radius: 8px; border: 1px dashed #f87171;">
-                    💡 Đã tạo ảnh thành công!<br>Nếu điện thoại không tự tải, hãy <b>NHẤN GIỮ VÀO ẢNH</b> dưới đây và chọn <b>"Lưu hình ảnh"</b>.
-                </div>
-                <img src="${imgData}" style="max-width: 100%; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); border: 1px solid #e4e4e7;">
-            </div>
-        `;
-
-        // 2. DÀNH CHO MÁY TÍNH: Vẫn cố gắng ép trình duyệt tự động tải file xuống
-        try {
-            let link = document.createElement('a');
-            link.download = `HoaDon_Phong_${name.replace(/\s+/g, '')}.png`;
-            link.href = imgData;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch (e) {
-            console.log("Trình duyệt chặn tải tự động, chuyển sang chế độ thủ công.");
-        }
-    }).catch(err => {
-        alert("Có lỗi xảy ra khi tạo ảnh: " + err);
+    html2canvas(content).then(canvas => {
+        let link = document.createElement('a');
+        link.download = `HoaDon_${name.replace(/\s+/g, '')}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
     });
 }
 
