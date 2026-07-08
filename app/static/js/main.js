@@ -118,11 +118,26 @@ function showInvoiceReceipt(data, roomWifi = 0, roomTrash = 0) {
 function saveInvoiceImage() {
     const content = document.getElementById('invoiceReceiptContent');
     const name = document.getElementById('billRoom').innerText;
+
     html2canvas(content).then(canvas => {
+        // Tạo file ảnh và tải xuống
         let link = document.createElement('a');
         link.download = `HoaDon_${name.replace(/\s+/g, '')}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
+
+        // Đóng modal hóa đơn hiện tại
+        const receiptModal = document.getElementById('receiptModal');
+        if (receiptModal) receiptModal.close();
+
+        // Hiện thông báo thành công
+        alert("Tải ảnh thành công!");
+
+        // Tải lại trang để reset dữ liệu và quay về room detail
+        window.location.reload();
+    }).catch(err => {
+        alert("Có lỗi xảy ra khi tạo ảnh hóa đơn!");
+        console.error(err);
     });
 }
 
