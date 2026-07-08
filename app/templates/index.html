@@ -12,7 +12,7 @@
 
 <div class="grid-dashboard">
     {% for room in rooms %}
-    <section class="jb-card">
+    <section class="jb-card" onclick="window.location.href='{{ url_for('views.room_detail', room_id=room.id) }}'" style="cursor: pointer;" title="Nhấn để xem chi tiết phòng">
         <div class="card-header-block">
             <h3 class="card-title-text">{{ room.room_name }}</h3>
             {% if room.is_rented %}
@@ -22,7 +22,7 @@
             {% endif %}
         </div>
 
-        <p class="card-desc">
+        <p class="card-body-text">
             {{ room.description if room.description else 'Không có mô tả chi tiết cho cấu hình phòng này.' }}
         </p>
 
@@ -30,10 +30,7 @@
             <div class="monospaced-price">
                 {{ "{:,.0f}".format(room.monthly_rent) }}<span>₫/tháng</span>
             </div>
-            <a href="{{ url_for('views.room_detail', room_id=room.id) }}" class="btn-core btn-outline-action" style="padding: 0.4rem 1rem; font-size: 0.85rem;">
-                Quản lý &rarr;
-            </a>
-        </div>
+            </div>
     </section>
     {% else %}
     <div style="grid-column: 1/-1; text-align: center; padding: 5rem; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 12px;">
