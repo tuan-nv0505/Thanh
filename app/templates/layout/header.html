@@ -1,21 +1,20 @@
-<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/">Phòng trọ Năm Lộc</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="collapsibleNavbar">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link active" href="/">Trang chủ</a>
-                </li>
+<nav class="navbar">
+    <div class="container nav-container">
+        <a href="/" class="nav-brand">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--jb-pink);"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            PHÒNG TRỌ NĂM LỘC
+        </a>
+        <ul class="nav-links">
+            <li><a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Dashboard</a></li>
 
-                {% if current_user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link text-danger" href="/logout">Đăng xuất</a>
-                </li>
-                {% endif %}
-            </ul>
-        </div>
+            <li>
+                <button id="themeToggleBtn" onclick="toggleTheme()" class="nav-link" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0.4rem; border-radius: 6px;" title="Chuyển đổi giao diện">
+                    </button>
+            </li>
+
+            {% if current_user.is_authenticated %}
+                <li><a href="/logout" class="nav-link nav-logout">Logout</a></li>
+            {% endif %}
+        </ul>
     </div>
 </nav>

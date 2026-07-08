@@ -1,357 +1,326 @@
 {% extends 'layout/base.html' %}
 
-{% block title %}Chi Tiết {{ room.room_name }}{% endblock %}
+{% block title %}Cấu hình - {{ room.room_name }}{% endblock %}
 
 {% block extra_head %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 {% endblock %}
 
 {% block content %}
-<a href="{{ url_for('views.index') }}" class="btn btn-sm btn-outline-dark mb-4">&larr; Quay lại sơ đồ</a>
-
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="text-uppercase">Thông tin: {{ room.room_name }}</span>
-        <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#editRoomModal">
-            Sửa Thông Tin
-        </button>
-    </div>
-    <div class="card-body">
-        <div class="mb-3">
-            <strong>Mô tả phòng:</strong>
-            <span class="text-muted">{{ room.description if room.description else 'Chưa có thông tin mô tả.' }}</span>
-        </div>
-
-        <div class="mb-3">
-            <strong>Trạng thái:</strong>
-            <span class="text-muted">{{ 'Đang cho thuê' if room.is_rented else 'Phòng trống' }}</span>
-        </div>
-
-        <div class="row text-center border-top pt-3">
-            <div class="col-md-4 border-end">
-                <p class="text-muted mb-1">Giá thuê phòng / Tháng</p>
-                <h5 class="mb-0">{{ "{:,.0f}".format(room.monthly_rent) }} đ</h5>
-            </div>
-            <div class="col-md-4 border-end">
-                <p class="text-muted mb-1">Phí Wifi</p>
-                <h5 class="mb-0">{{ "{:,.0f}".format(room.wifi_fee) }} đ</h5>
-            </div>
-            <div class="col-md-4">
-                <p class="text-muted mb-1">Phí Rác</p>
-                <h5 class="mb-0">{{ "{:,.0f}".format(room.trash_fee) }} đ</h5>
-            </div>
-        </div>
-    </div>
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('views.index') }}" style="color: var(--text-muted); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'">
+        &larr; Quay lại bảng điều khiển trung tâm
+    </a>
 </div>
 
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="text-uppercase">Danh sách Nhóm Thuê</span>
-        <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#addGroupModal">
-            + Thêm Nhóm Mới
-        </button>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle text-center mb-0">
-                <thead>
+<div class="grid-details">
+    <aside class="jb-card" style="height: fit-content; gap: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);">{{ room.room_name }}</h2>
+            <button class="btn-core btn-outline-action" style="padding: 0.4rem 0.75rem; font-size: 0.8rem;" onclick="document.getElementById('editRoomModal').showModal()">Sửa</button>
+        </div>
+
+        <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; text-transform: uppercase;">Trạng thái vận hành</div>
+            <div>
+                {% if room.is_rented %}
+                    <span class="status-badge active-state">Đang cho thuê</span>
+                {% else %}
+                    <span class="status-badge empty-state">Phòng trống</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; text-transform: uppercase;">Mô tả chi tiết</div>
+            <p style="font-size: 0.95rem; color: var(--text-main);">{{ room.description if room.description else 'Chưa có thông tin mô tả chi tiết.' }}</p>
+        </div>
+
+        <div class="analytics-stripe">
+            <div class="widget-box">
+                <div class="widget-label">Giá phòng</div>
+                <div class="widget-value" style="color: var(--jb-blue);">{{ "{:,.0f}".format(room.monthly_rent) }}</div>
+            </div>
+            <div class="widget-box">
+                <div class="widget-label">Phí Wifi</div>
+                <div class="widget-value">{{ "{:,.0f}".format(room.wifi_fee) }}</div>
+            </div>
+            <div class="widget-box">
+                <div class="widget-label">Phí Rác</div>
+                <div class="widget-value">{{ "{:,.0f}".format(room.trash_fee) }}</div>
+            </div>
+        </div>
+    </aside>
+
+    <section class="table-wrapper">
+        <div class="table-header-panel">
+            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">HỢP ĐỒNG THUÊ ĐANG HOẠT ĐỘNG</h3>
+            <button class="btn-core btn-gradient-action" style="font-size: 0.85rem; padding: 0.5rem 1rem;" onclick="document.getElementById('addGroupModal').showModal()">+ Tạo Nhóm Mới</button>
+        </div>
+
+        <table class="data-sheet">
+            <thead>
                 <tr>
-                    <th>Tên Nhóm / Đại diện</th>
-                    <th>Tiền Cọc (VNĐ)</th>
-                    <th>Thao Tác</th>
+                    <th>Tên Nhóm / Hợp Đồng</th>
+                    <th>Tiền Cọc Đang Giữ</th>
+                    <th style="text-align: right;">Hành động</th>
                 </tr>
-                </thead>
-                <tbody>
+            </thead>
+            <tbody>
                 {% for group in groups %}
                 <tr>
-                    <td class="fw-bold text-start ps-4">{{ group.group_name }}</td>
-                    <td>{{ "{:,.0f}".format(group.deposit_amount) }} đ</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-dark fw-bold me-1" data-bs-toggle="modal"
-                                data-bs-target="#createInvoiceModal{{ group.id }}">
-                            Lập Hóa Đơn
-                        </button>
-
-                        <a href="{{ url_for('views.group_detail', group_id=group.id) }}"
-                           class="btn btn-sm btn-dark me-1">Khách thuê ({{ group.customers | selectattr('active', 'equalto', True) | list | length }})</a>
-                        <button class="btn btn-sm btn-outline-dark me-1" data-bs-toggle="modal"
-                                data-bs-target="#editGroupModal{{ group.id }}">Sửa
-                        </button>
-
-                        <button type="button" class="btn btn-sm btn-danger"
-                                onclick="apiDelete('/api/groups/{{ group.id }}', 'Xác nhận xóa nhóm này?')">Xóa
-                        </button>
+                    <td style="font-weight: 600; color: var(--text-main);">{{ group.group_name }}</td>
+                    <td style="font-family: var(--font-mono);">{{ "{:,.0f}".format(group.deposit_amount) }} đ</td>
+                    <td style="text-align: right; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                        <button class="btn-core btn-solid-action" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;" onclick="openInvoiceModal('{{ group.id }}')">Lập Hóa Đơn</button>
+                        <a href="{{ url_for('views.group_detail', group_id=group.id) }}" class="btn-core btn-outline-action" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">Khách ({{ group.customers | selectattr('active', 'equalto', True) | list | length }})</a>
+                        <button class="btn-core btn-outline-action" style="font-size: 0.8rem; padding: 0.4rem 0.6rem;" onclick="document.getElementById('editGroupModal{{ group.id }}').showModal()">Sửa</button>
+                        <button class="btn-core btn-danger-action" style="font-size: 0.8rem; padding: 0.4rem 0.6rem;" onclick="apiDelete('/api/groups/{{ group.id }}', 'Xác nhận hủy và xóa nhóm này?')">Xóa</button>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="3" class="text-muted py-4">Phòng hiện đang trống.</td>
+                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 4rem 0;">Hiện tại phân vùng phòng này chưa có nhóm đối tượng nào đăng ký thuê.</td>
                 </tr>
                 {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+            </tbody>
+        </table>
+    </section>
 </div>
+
+<dialog id="editRoomModal">
+    <div class="dialog-header">
+        <h3 class="dialog-title">Cấu hình thông số phòng</h3>
+        <span class="dialog-close-trigger" onclick="document.getElementById('editRoomModal').close()">&times;</span>
+    </div>
+    <form onsubmit="apiSubmit(event, '/api/rooms/{{ room.id }}', 'PUT')">
+        <div class="field-wrapper" style="margin-bottom: 1.25rem;">
+            <label class="field-label">Mô tả phòng</label>
+            <textarea name="description" class="input-control" rows="3" style="resize: none;">{{ room.description or '' }}</textarea>
+        </div>
+        <div class="field-wrapper" style="margin-bottom: 1.25rem;">
+            <label class="field-label">Trạng thái phòng</label>
+            <select name="is_rented" class="input-control">
+                <option value="0" {% if not room.is_rented %}selected{% endif %}>Phòng trống</option>
+                <option value="1" {% if room.is_rented %}selected{% endif %}>Đang cho thuê</option>
+            </select>
+        </div>
+        <div class="input-group-row split-3">
+            <div class="field-wrapper">
+                <label class="field-label">Giá thuê / Tháng</label>
+                <input type="number" name="monthly_rent" class="input-control" value="{{ room.monthly_rent | int }}" min="0" required>
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label">Phí Wifi cố định</label>
+                <input type="number" name="wifi_fee" class="input-control" value="{{ room.wifi_fee | int }}" min="0" required>
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label">Phí Rác cố định</label>
+                <input type="number" name="trash_fee" class="input-control" value="{{ room.trash_fee | int }}" min="0" required>
+            </div>
+        </div>
+        <div class="dialog-footer">
+            <button type="button" class="btn-core btn-outline-action" onclick="document.getElementById('editRoomModal').close()">Hủy</button>
+            <button type="submit" class="btn-core btn-solid-action">Lưu Cấu Hình</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="addGroupModal">
+    <div class="dialog-header">
+        <h3 class="dialog-title">Khởi tạo nhóm thuê</h3>
+        <span class="dialog-close-trigger" onclick="document.getElementById('addGroupModal').close()">&times;</span>
+    </div>
+    <form onsubmit="apiSubmit(event, '/api/rooms/{{ room.id }}/groups', 'POST')">
+        <div class="field-wrapper" style="margin-bottom: 1.25rem;">
+            <label class="field-label">Tên Nhóm / Tên đại diện hợp đồng</label>
+            <input type="text" name="group_name" class="input-control" required placeholder="Ví dụ: Nhóm anh Thành">
+        </div>
+        <div class="field-wrapper">
+            <label class="field-label">Tiền đặt cọc bàn giao (VNĐ)</label>
+            <input type="number" name="deposit_amount" class="input-control" value="0" min="0" required>
+        </div>
+        <div class="dialog-footer">
+            <button type="button" class="btn-core btn-outline-action" onclick="document.getElementById('addGroupModal').close()">Hủy</button>
+            <button type="submit" class="btn-core btn-solid-action">Khởi Tạo</button>
+        </div>
+    </form>
+</dialog>
 
 {% for group in groups %}
-<div class="modal fade" id="editGroupModal{{ group.id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <form onsubmit="apiSubmit(event, '/api/groups/{{ group.id }}', 'PUT')" class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title text-uppercase">Sửa Nhóm Thuê</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-start">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Tên Nhóm / Hợp Đồng</label>
-                    <input type="text" name="group_name" class="form-control" value="{{ group.group_name }}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Tiền Cọc Đang Giữ (VNĐ)</label>
-                    <input type="number" name="deposit_amount" class="form-control"
-                           value="{{ group.deposit_amount | int }}" min="0" required>
-                </div>
-            </div>
-            <div class="modal-footer border-top-0">
-                <button type="button" class="btn btn-sm btn-outline-dark" data-bs-dismiss="modal">Hủy</button>
-                <button type="submit" class="btn btn-sm btn-dark">Lưu Thay Đổi</button>
-            </div>
-        </form>
+<dialog id="editGroupModal{{ group.id }}">
+    <div class="dialog-header">
+        <h3 class="dialog-title">Hiệu chỉnh nhóm thuê</h3>
+        <span class="dialog-close-trigger" onclick="document.getElementById('editGroupModal{{ group.id }}').close()">&times;</span>
     </div>
-</div>
+    <form onsubmit="apiSubmit(event, '/api/groups/{{ group.id }}', 'PUT')">
+        <div class="field-wrapper" style="margin-bottom: 1.25rem;">
+            <label class="field-label">Tên Nhóm / Hợp đồng</label>
+            <input type="text" name="group_name" class="input-control" value="{{ group.group_name }}" required>
+        </div>
+        <div class="field-wrapper">
+            <label class="field-label">Tiền cọc đang giữ quỹ (VNĐ)</label>
+            <input type="number" name="deposit_amount" class="input-control" value="{{ group.deposit_amount | int }}" min="0" required>
+        </div>
+        <div class="dialog-footer">
+            <button type="button" class="btn-core btn-outline-action" onclick="document.getElementById('editGroupModal{{ group.id }}').close()">Hủy</button>
+            <button type="submit" class="btn-core btn-solid-action">Cập Nhật</button>
+        </div>
+    </form>
+</dialog>
 
-<div class="modal fade" id="createInvoiceModal{{ group.id }}" tabindex="-1"
-     data-monthly-rent="{{ room.monthly_rent }}"
-     data-wifi-fee="{{ room.wifi_fee }}"
-     data-trash-fee="{{ room.trash_fee }}">
-    <div class="modal-dialog modal-lg">
-        <form onsubmit="apiSubmit(event, '/api/rooms/{{ room.id }}/invoices', 'POST')" class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title text-uppercase">Lập Hóa Đơn - {{ group.group_name }}</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-start">
+<dialog id="createInvoiceModal{{ group.id }}" data-monthly-rent="{{ room.monthly_rent }}" data-wifi-fee="{{ room.wifi_fee }}" data-trash-fee="{{ room.trash_fee }}">
+    <form onsubmit="apiSubmit(event, '/api/rooms/{{ room.id }}/invoices', 'POST')">
 
-                <div class="row mb-3 bg-light p-3 border mx-0">
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Giá phòng / tháng</label>
-                        <input type="text" class="form-control fw-bold"
-                               value="{{ '{:,.0f}'.format(room.monthly_rent) }} đ" disabled>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Thời gian ở lẻ (Nếu có)</label>
-                        <div class="input-group mb-1">
-                            <span class="input-group-text bg-white text-dark">Từ</span>
-                            <input type="date" name="start_date" class="form-control border-dark"
-                                   onchange="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                            <span class="input-group-text bg-white text-dark">Đến</span>
-                            <input type="date" name="end_date" class="form-control border-dark"
-                                   onchange="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                        </div>
-                        <input type="hidden" name="rent_days" value="">
-                        <small class="text-muted" id="calculatedDays{{ group.id }}">* Trống = Tính nguyên tháng</small>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Giá / ngày</label>
-                        <input type="number" name="room_price_per_day" class="form-control border-dark" placeholder="Tháng / 30"
-                               oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                    </div>
+        <div class="highlight-box" style="margin-bottom: 1.5rem;">
+            <div class="input-group-row split-2" style="margin-bottom: 1rem;">
+                <div class="field-wrapper">
+                    <label class="field-label">Giá niêm yết / tháng</label>
+                    <input type="text" class="input-control" value="{{ '{:,.0f}'.format(room.monthly_rent) }} đ" disabled style="font-weight:700;">
                 </div>
-
-                <div class="row mb-3 p-2 border mx-0">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Số điện cũ</label>
-                        <input type="number" name="old_electricity_index" class="form-control" step="any"
-                               value="{{ room.current_electricity_index }}" required
-                               oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Số điện mới</label>
-                        <input type="number" name="new_electricity_index" class="form-control" step="any" required
-                               oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Đơn giá điện</label>
-                        <input type="number" name="electricity_price" class="form-control" value="3500" step="any" required
-                               oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                    </div>
-                </div>
-
-                <div class="row mb-3 p-2 border mx-0">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Số nước cũ</label>
-                        <input type="number" name="old_water_index" class="form-control" step="any"
-                               value="{{ room.current_water_index }}" required
-                               oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Số nước mới</label>
-                        <input type="number" name="new_water_index" class="form-control" step="any" required
-                               oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Đơn giá nước</label>
-                        <input type="number" name="water_price" class="form-control" value="20000" step="any" required
-                               oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                    </div>
-                </div>
-
-                {% if group.deposit_amount > 0 %}
-                <div class="form-check mb-3 p-3 border bg-light">
-                    <input class="form-check-input ms-1" type="checkbox" name="deduct_deposit"
-                           id="deductCheck{{ group.id }}" value="{{ group.deposit_amount }}"
-                           onchange="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-                    <label class="form-check-label fw-bold ms-2" for="deductCheck{{ group.id }}">
-                        Trừ tiền cọc (Đang giữ: {{ "{:,.0f}".format(group.deposit_amount) }} đ)
-                    </label>
-                </div>
-                {% endif %}
-
-                <div class="alert border text-dark mb-0 p-2">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span><strong>Cố định:</strong> <span id="fixedFeesText{{ group.id }}">Wifi + Rác</span></span>
-                    </div>
-
-                    <div class="justify-content-between mb-1 text-success d-none" id="previewDeductRow{{ group.id }}">
-                        <span><strong>Trừ cọc:</strong></span>
-                        <span id="previewDeduct{{ group.id }}">- 0 đ</span>
-                    </div>
-
-                    <hr class="my-1 border-dark">
-
-                <div class="d-flex justify-content-between align-items-center fs-5">
-                    <span id="previewTotalLabel{{ group.id }}" class="fw-bold">KHÁCH THANH TOÁN:</span>
-                    <span class="fw-bold text-danger" id="previewTotal{{ group.id }}">0 đ</span>
-                </div>
+                <div class="field-wrapper">
+                    <label class="field-label">Giá tính / ngày (Tùy chọn lẻ)</label>
+                    <input type="number" name="room_price_per_day" class="input-control" placeholder="Mặc định: Tháng / 30" oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
                 </div>
             </div>
-            <div class="modal-footer border-top-0">
-                <button type="button" class="btn btn-sm btn-outline-dark" data-bs-dismiss="modal">Hủy</button>
-                <button type="submit" class="btn btn-sm btn-dark">Chốt Hóa Đơn</button>
-            </div>
-        </form>
-    </div>
-</div>
-{% endfor %}
-
-<div class="modal fade" id="addGroupModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form onsubmit="apiSubmit(event, '/api/rooms/{{ room.id }}/groups', 'POST')" class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title text-uppercase">Thêm Nhóm Mới</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Tên Nhóm / Tên người đại diện</label>
-                    <input type="text" name="group_name" class="form-control" required>
+            <div class="field-wrapper">
+                <label class="field-label">Khoảng thời gian lưu trú lẻ</label>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="date" name="start_date" class="input-control" onchange="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+                    <span style="color:var(--text-muted)">đến</span>
+                    <input type="date" name="end_date" class="input-control" onchange="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Tiền Cọc Thu Của Khách (VNĐ)</label>
-                    <input type="number" name="deposit_amount" class="form-control" value="0" min="0" required>
-                </div>
-            </div>
-            <div class="modal-footer border-top-0">
-                <button type="button" class="btn btn-sm btn-outline-dark" data-bs-dismiss="modal">Đóng</button>
-                <button type="submit" class="btn btn-sm btn-dark">Lưu Nhóm</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="modal fade" id="editRoomModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form onsubmit="apiSubmit(event, '/api/rooms/{{ room.id }}', 'PUT')" class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title text-uppercase">Sửa thông tin: {{ room.room_name }}</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-start">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Mô tả phòng</label>
-                    <textarea name="description" class="form-control" rows="2">{{ room.description or '' }}</textarea>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Trạng thái phòng</label>
-                    <select name="is_rented" class="form-select">
-                        <option value="0" {% if not room.is_rented %}selected{% endif %}>Phòng trống</option>
-                        <option value="1" {% if room.is_rented %}selected{% endif %}>Đang cho thuê</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Giá Thuê / Tháng (VNĐ)</label>
-                    <input type="number" name="monthly_rent" class="form-control" value="{{ room.monthly_rent | int }}"
-                           min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Phí Wifi Cố Định (VNĐ)</label>
-                    <input type="number" name="wifi_fee" class="form-control" value="{{ room.wifi_fee | int }}" min="0"
-                           required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Phí Rác Cố Định (VNĐ)</label>
-                    <input type="number" name="trash_fee" class="form-control" value="{{ room.trash_fee | int }}"
-                           min="0" required>
-                </div>
-            </div>
-            <div class="modal-footer border-top-0">
-                <button type="button" class="btn btn-sm btn-outline-dark" data-bs-dismiss="modal">Hủy</button>
-                <button type="submit" class="btn btn-sm btn-dark">Lưu Thông Tin</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Modal Hóa Đơn Trả Về (Bản To, Rõ & Đẹp hơn) -->
-<div class="modal fade" id="receiptModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog"> <!-- Bỏ chữ modal-sm để form to ra mức tiêu chuẩn -->
-        <div class="modal-content border-dark">
-
-            <!-- Tăng padding lên p-5, set cứng font-size lớn hơn (1.15rem) -->
-            <div class="modal-body p-5" id="invoiceReceiptContent"
-                 style="background: white; color: black; font-family: 'Courier New', Courier, monospace; font-size: 1.15rem;">
-
-                <div class="text-center mb-4">
-                    <h4 class="fw-bold mb-2">HÓA ĐƠN PHÒNG TRỌ NĂM LỘC</h4>
-                    <span id="billDate" class="fst-italic"></span><br>
-                    <span id="billCode" class="text-muted fs-6"></span>
-                </div>
-
-                <div class="mb-2"><strong>Phòng:</strong> <span id="billRoom"></span></div>
-                <div class="mb-4"><strong>Khách:</strong> <span id="billGroup"></span></div>
-
-                <div class="mb-3 d-none" id="rowBillDateRange">
-                    <strong>Kỳ ở lẻ:</strong> <span id="billDateRange"></span>
-                </div>
-
-                <!-- Đường kẻ đứt phân cách -->
-                <div class="border-top border-dark border-2 my-4" style="border-style: dashed !important;"></div>
-
-                <!-- Tăng khoảng cách các dòng lên mb-3 -->
-                <div class="d-flex justify-content-between mb-3"><span>Tiền phòng:</span> <span id="billRent"></span></div>
-                <div class="d-flex justify-content-between mb-3"><span>Điện:</span> <span id="billElec"></span></div>
-                <div class="d-flex justify-content-between mb-3"><span>Nước:</span> <span id="billWater"></span></div>
-                <div class="d-flex justify-content-between mb-3"><span>Dịch vụ:</span> <span id="billServices"></span></div>
-
-                <div class="justify-content-between mb-3 d-none text-danger" id="rowBillDeduct">
-                    <span>Trừ cọc:</span> <span id="billDeduct"></span>
-                </div>
-
-                <div class="border-top border-dark border-2 my-4" style="border-style: dashed !important;"></div>
-
-                <!-- Làm to và in đậm dòng Tổng Tiền -->
-                <div class="d-flex justify-content-between fw-bold mt-2" style="font-size: 1.4rem;">
-                    <span id="billTotalLabel">KHÁCH THANH TOÁN:</span>
-                    <span id="billTotal"></span>
-                </div>
-            </div>
-
-            <div class="modal-footer border-top-0 d-flex flex-column p-4 bg-light">
-                <button type="button" class="btn btn-dark w-100 fw-bold py-2 fs-5" onclick="saveInvoiceImage()">⬇️ Tải Ảnh Hóa Đơn</button>
-                <button type="button" class="btn btn-outline-dark w-100 py-2 mt-2" data-bs-dismiss="modal">Đóng</button>
+                <input type="hidden" name="rent_days" value="">
+                <small id="calculatedDays{{ group.id }}" style="color:var(--text-muted); display:block; margin-top:0.25rem;">* Mặc định: Tính trọn tháng</small>
             </div>
         </div>
+
+        <div class="input-group-row split-3">
+            <div class="field-wrapper">
+                <label class="field-label">Chỉ số điện Cũ</label>
+                <input type="number" name="old_electricity_index" class="input-control" step="any" value="{{ room.current_electricity_index }}" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label">Chỉ số điện Mới</label>
+                <input type="number" name="new_electricity_index" class="input-control" step="any" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label">Đơn giá Điện (đ/kWh)</label>
+                <input type="number" name="electricity_price" class="input-control" value="3500" step="any" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+            </div>
+        </div>
+
+        <div class="input-group-row split-3" style="margin-top: 1.25rem; margin-bottom: 1.5rem;">
+            <div class="field-wrapper">
+                <label class="field-label">Chỉ số nước Cũ</label>
+                <input type="number" name="old_water_index" class="input-control" step="any" value="{{ room.current_water_index }}" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label">Chỉ số nước Mới</label>
+                <input type="number" name="new_water_index" class="input-control" step="any" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label">Đơn giá Nước (đ/m³)</label>
+                <input type="number" name="water_price" class="input-control" value="20000" step="any" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+            </div>
+        </div>
+
+        {% if group.deposit_amount > 0 %}
+        <div class="checkbox-wrapper">
+            <input type="checkbox" name="deduct_deposit" id="deductCheck{{ group.id }}" value="{{ group.deposit_amount }}" class="checkbox-control" onchange="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+            <label for="deductCheck{{ group.id }}" style="font-weight:600; cursor:pointer; color: var(--text-main);">Khấu trừ vào quỹ tiền cọc (Hiện giữ: {{ "{:,.0f}".format(group.deposit_amount) }} đ)</label>
+        </div>
+        {% endif %}
+
+        <div class="highlight-box">
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.5rem;">
+                <span style="color:var(--text-muted)">Cố định kèm theo:</span>
+                <span id="fixedFeesText{{ group.id }}" style="color:var(--text-main); font-weight:600;">Wifi + Rác</span>
+            </div>
+            <div id="previewDeductRow{{ group.id }}" style="display:none; justify-content:space-between; font-size:0.9rem; margin-bottom:0.5rem; color:var(--jb-pink);">
+                <span>Khấu trừ quỹ cọc:</span>
+                <span id="previewDeduct{{ group.id }}">- 0 đ</span>
+            </div>
+            <div style="border-top:1px solid var(--border-color); margin-top:0.75rem; padding-top:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                <span id="previewTotalLabel{{ group.id }}" style="font-weight:700; font-size:1rem; color:var(--text-main);">KHÁCH THANH TOÁN:</span>
+                <span id="previewTotal{{ group.id }}" style="font-family:var(--font-mono); font-size:1.3rem; font-weight:700; color:var(--danger);">0 đ</span>
+            </div>
+        </div>
+
+        <div class="dialog-footer">
+            <button type="button" class="btn-core btn-outline-action" onclick="document.getElementById('createInvoiceModal{{ group.id }}').close()">Hủy Bỏ</button>
+            <button type="submit" class="btn-core btn-gradient-action">Chốt & Xuất Hóa Đơn</button>
+        </div>
+    </form>
+</dialog>
+{% endfor %}
+
+<dialog id="receiptModal" style="max-width: 480px; padding: 0; overflow: hidden; background: #f4f4f5; border: none; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+    <div id="invoiceReceiptContent" style="background: #ffffff; padding: 2.5rem; color: #09090b; font-family: var(--font-ui);">
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+            <div>
+                <div style="font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; color: #18181b;">NĂM LỘC</div>
+                <div style="font-size: 0.8rem; color: #e81c79; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Hóa Đơn Thanh Toán</div>
+            </div>
+            <div style="text-align: right;">
+                <div id="billDate" style="font-size: 0.85rem; font-weight: 600; color: #71717a;"></div>
+            </div>
+        </div>
+
+        <div style="background: #f4f4f5; padding: 1.25rem; border-radius: 8px; margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="color: #71717a; font-size: 0.85rem;">Phòng vận hành:</span>
+                <span id="billRoom" style="font-weight: 700; color:#09090b;"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="color: #71717a; font-size: 0.85rem;">Khách đại diện:</span>
+                <span id="billGroup" style="font-weight: 600; color:#09090b;"></span>
+            </div>
+            <div id="rowBillDateRange" style="display: flex; justify-content: space-between;">
+                <span style="color: #71717a; font-size: 0.85rem;">Kỳ thanh toán lẻ:</span>
+                <span id="billDateRange" style="font-size: 0.85rem; font-weight: 600; color:#09090b;"></span>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid #e4e4e7; margin-bottom: 1rem; font-size: 0.75rem; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 0.5px;">
+                <span>Hạng mục</span>
+                <span>Thành tiền</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.85rem;">
+                <span style="font-weight: 500; color: #09090b;">Tiền phòng gốc</span>
+                <span id="billRent" style="font-family: var(--font-mono); font-weight: 600; color:#09090b;"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.85rem;">
+                <span style="font-weight: 500; color: #3f3f46;">Tiêu thụ điện <span id="billElecUsage" style="font-size: 0.8rem; color: #a1a1aa; margin-left: 4px;"></span></span>
+                <span id="billElec" style="font-family: var(--font-mono); font-weight: 600; color:#09090b;"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.85rem;">
+                <span style="font-weight: 500; color: #3f3f46;">Tiêu thụ nước <span id="billWaterUsage" style="font-size: 0.8rem; color: #a1a1aa; margin-left: 4px;"></span></span>
+                <span id="billWater" style="font-family: var(--font-mono); font-weight: 600; color:#09090b;"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.85rem;">
+                <span style="font-weight: 500; color: #3f3f46;">Phí dịch vụ chung</span>
+                <span id="billServices" style="font-family: var(--font-mono); font-weight: 600; color:#09090b;"></span>
+            </div>
+
+            <div id="rowBillDeduct" style="display: none; justify-content: space-between; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed #e4e4e7; color: #ef4444;">
+                <span style="font-weight: 600;">Trừ quỹ tiền cọc</span>
+                <span id="billDeduct" style="font-family: var(--font-mono); font-weight: 700;"></span>
+            </div>
+        </div>
+
+        <div style="background: #18181b; color: #ffffff; padding: 1.5rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+            <span id="billTotalLabel" style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #a1a1aa;">Tổng thanh toán</span>
+            <span id="billTotal" style="font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: #00bfff;"></span>
+        </div>
     </div>
-</div>
+
+    <div style="background: #f4f4f5; padding: 1.25rem; display: flex; gap: 1rem; border-top: 1px solid #e4e4e7;">
+        <button type="button" style="flex: 1; padding: 0.85rem; border-radius: 8px; font-weight: 600; background: #ffffff; border: 1px solid #d4d4d8; color: #18181b; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('receiptModal').close(); window.location.reload();">Đóng cửa sổ</button>
+        <button type="button" style="flex: 2; padding: 0.85rem; border-radius: 8px; font-weight: 600; background: #18181b; border: none; color: #ffffff; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="saveInvoiceImage()">⬇️ Lưu Ảnh Hóa Đơn</button>
+    </div>
+</dialog>
 {% endblock %}

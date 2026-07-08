@@ -1,38 +1,44 @@
 {% extends 'layout/base.html' %}
 
-{% block title %}Sơ đồ phòng - Phòng trọ Năm Lộc{% endblock %}
+{% block title %}Workspace Dashboard{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-body p-0">
-        <table class="table table-bordered align-middle text-center mb-0">
-            <thead>
-                <tr>
-                    <th>Tên Phòng</th>
-                    <th>Trạng Thái</th>
-                    <th>Thao Tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for room in rooms %}
-                <tr>
-                    <td class="fw-bold">{{ room.room_name }}</td>
-                    <td>
-                        {% if room.is_rented %}
-                            <span class="badge-status bg-light text-dark fw-bold">Đang cho thuê</span>
-                        {% else %}
-                            <span class="badge-status text-muted">Phòng trống</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('views.room_detail', room_id=room.id) }}" class="btn btn-sm btn-dark">Xem Chi Tiết</a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu phòng trọ.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+    <div>
+        <h1 style="font-size: 2rem; font-weight: 700; letter-spacing: -0.5px;">Danh sách phòng</h1>
     </div>
+    <div class="status-badge active-state" style="font-family: var(--font-mono);">Tổng: {{ rooms|length }} phòng</div>
+</div>
+
+<div class="grid-dashboard">
+    {% for room in rooms %}
+    <section class="jb-card">
+        <div class="card-header-block">
+            <h3 class="card-title-text">{{ room.room_name }}</h3>
+            {% if room.is_rented %}
+                <span class="status-badge active-state">Đang cho thuê</span>
+            {% else %}
+                <span class="status-badge empty-state">Trống</span>
+            {% endif %}
+        </div>
+
+        <p class="card-desc">
+            {{ room.description if room.description else 'Không có mô tả chi tiết cho cấu hình phòng này.' }}
+        </p>
+
+        <div class="card-footer-block">
+            <div class="monospaced-price">
+                {{ "{:,.0f}".format(room.monthly_rent) }}<span>₫/tháng</span>
+            </div>
+            <a href="{{ url_for('views.room_detail', room_id=room.id) }}" class="btn-core btn-outline-action" style="padding: 0.4rem 1rem; font-size: 0.85rem;">
+                Quản lý &rarr;
+            </a>
+        </div>
+    </section>
+    {% else %}
+    <div style="grid-column: 1/-1; text-align: center; padding: 5rem; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 12px;">
+        Chưa có cấu hình dữ liệu phòng trọ trong phân vùng này.
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}
