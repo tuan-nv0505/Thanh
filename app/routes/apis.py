@@ -19,7 +19,7 @@ def update_room(room_id):
             float(data.get('wifi_fee', 0)),
             float(data.get('trash_fee', 0)),
             data.get('description', ''),
-            is_rented_bool  # Đã đổi sang biến mang giá trị boolean chuẩn
+            is_rented_bool
         )
         return jsonify({"message": "Cập nhật thành công"}), 200
     except Exception as e:
@@ -87,22 +87,24 @@ def remove_customer(customer_id):
 def add_invoice(room_id):
     data = request.json
     try:
-        # Gọi DAO để tạo hóa đơn vào DB
         inv = dao.create_invoice(room_id, data)
-
-        # Lấy thêm tên phòng và tên nhóm để in ra bill
         room = dao.get_room_by_id(room_id)
         group = models.RentGroup.query.filter_by(room_id=room_id, active=True).first()
 
-        # Tạo gói dữ liệu (JSON) trả về cho Trình duyệt
         invoice_data = {
             "invoice_code": inv.invoice_code,
             "room_name": room.room_name,
             "group_name": group.group_name if group else "Khách vãng lai",
             "created_at": inv.created_at.strftime("%d/%m/%Y"),
+            "elec_old": inv.old_electricity_index,
+            "elec_new": inv.new_electricity_index,
             "elec_usage": inv.electricity_usage,
+            "elec_price": inv.applied_electricity_price,
             "elec_cost": inv.electricity_cost,
+            "water_old": inv.old_water_index,
+            "water_new": inv.new_water_index,
             "water_usage": inv.water_usage,
+            "water_price": inv.applied_water_price,
             "water_cost": inv.water_cost,
             "room_rent": inv.applied_room_rent,
             "services_fee": inv.applied_wifi_fee + inv.applied_trash_fee,
@@ -117,3 +119,37 @@ def add_invoice(room_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 400
+
+
+# API: Lấy toàn bộ thông tin của 1 hóa đơn để Xem và Tải lại
+@api_bp.route('/invoices/<int:invoice_id>/full', methods=['GET'])
+@login_required
+def get_full_invoice_data(invoice_id):
+    inv = models.Invoice.query.get(invoice_id)
+    if not inv:
+        return jsonify({"error": "Không tìm thấy hóa đơn"}), 404
+
+    room = inv.room
+    group = models.RentGroup.query.filter_by(room_id=room.id, active=True).first()
+
+    return jsonify({
+        "room_name": room.room_name,
+        "group_name": group.group_name if group else "Khách",
+        "elec_old": inv.old_electricity_index,
+        "elec_new": inv.new_electricity_index,
+        "elec_usage": inv.electricity_usage,
+        "elec_price": inv.applied_electricity_price,
+        "elec_cost": inv.electricity_cost,
+        "water_old": inv.old_water_index,
+        "water_new": inv.new_water_index,
+        "water_usage": inv.water_usage,
+        "water_price": inv.applied_water_price,
+        "water_cost": inv.water_cost,
+        "room_rent": inv.applied_room_rent,
+        "wifi_fee": inv.applied_wifi_fee,
+        "trash_fee": inv.applied_trash_fee,
+        "services_fee": inv.applied_wifi_fee + inv.applied_trash_fee,
+        "deducted": inv.deducted_deposit,
+        "total": inv.total_amount,
+        "created_at": inv.created_at.strftime('%d/%m/%Y')
+    }), 200

@@ -86,7 +86,42 @@
             </tbody>
         </table>
     </section>
+
 </div>
+
+    <section class="table-wrapper" style="margin-top: 2rem;">
+        <div class="table-header-panel">
+            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">LỊCH SỬ HÓA ĐƠN</h3>
+        </div>
+        <table class="data-sheet">
+            <thead>
+                <tr>
+                    <th>Mã Hóa Đơn</th>
+                    <th>Ngày Lập</th>
+                    <th>Tổng Tiền</th>
+                    <th style="text-align: right;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in room.invoices|sort(attribute='id', reverse=True) %}
+                <tr>
+                    <td style="font-weight: 600; color: var(--text-main);">{{ inv.invoice_code or 'N/A' }}</td>
+                    <td>{{ inv.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                    <td style="font-weight: bold; color: {% if inv.total_amount < 0 %}red{% else %}#10b981{% endif %};">
+                        {% if inv.total_amount < 0 %}{{ "{:,.0f}".format(inv.total_amount * -1) }}{% else %}{{ "{:,.0f}".format(inv.total_amount) }}{% endif %} đ
+                    </td>
+                    <td style="text-align: right;">
+                        <button class="btn-core btn-outline-action" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;" onclick="viewOldInvoice({{ inv.id }})">Xem / Tải</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Chưa có hóa đơn nào được tạo cho phòng này.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
 
 <dialog id="editRoomModal">
     <div class="dialog-header">
@@ -172,6 +207,8 @@
 <dialog id="createInvoiceModal{{ group.id }}" data-monthly-rent="{{ room.monthly_rent }}" data-wifi-fee="{{ room.wifi_fee }}" data-trash-fee="{{ room.trash_fee }}">
     <form onsubmit="apiSubmit(event, '/api/rooms/{{ room.id }}/invoices', 'POST')">
 
+        <input type="hidden" id="replaceInvoiceId{{ group.id }}" name="replace_invoice_id" value="">
+
         <div class="highlight-box" style="margin-bottom: 1.5rem;">
             <div class="input-group-row split-2" style="margin-bottom: 1rem;">
                 <div class="field-wrapper">
@@ -206,7 +243,7 @@
             </div>
             <div class="field-wrapper">
                 <label class="field-label">Đơn giá Điện (đ/kWh)</label>
-                <input type="number" name="electricity_price" class="input-control" value="3500" step="any" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+                <input type="number" name="electricity_price" class="input-control" value="4000" step="any" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
             </div>
         </div>
 
@@ -221,30 +258,74 @@
             </div>
             <div class="field-wrapper">
                 <label class="field-label">Đơn giá Nước (đ/m³)</label>
-                <input type="number" name="water_price" class="input-control" value="20000" step="any" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+                <input type="number" name="water_price" class="input-control" value="15000" step="any" required oninput="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
             </div>
         </div>
 
         {% if group.deposit_amount > 0 %}
-        <div class="checkbox-wrapper">
-            <input type="checkbox" name="deduct_deposit" id="deductCheck{{ group.id }}" value="{{ group.deposit_amount }}" class="checkbox-control" onchange="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
-            <label for="deductCheck{{ group.id }}" style="font-weight:600; cursor:pointer; color: var(--text-main);">Khấu trừ vào quỹ tiền cọc (Hiện giữ: {{ "{:,.0f}".format(group.deposit_amount) }} đ)</label>
+        <div class="checkbox-wrapper" style="flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
+                <input type="checkbox" name="deduct_deposit" id="deductCheck{{ group.id }}" value="{{ group.deposit_amount }}" class="checkbox-control" onchange="tinhTongTien({{ group.id }}, {{ room.monthly_rent }}, {{ room.wifi_fee }}, {{ room.trash_fee }})">
+                <label for="deductCheck{{ group.id }}" style="font-weight:600; cursor:pointer; color: var(--text-main);">Trừ tiền cọc (Hiện giữ: {{ "{:,.0f}".format(group.deposit_amount) }} đ)</label>
+            </div>
         </div>
         {% endif %}
 
-        <div class="highlight-box">
-            <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.5rem;">
-                <span style="color:var(--text-muted)">Cố định kèm theo:</span>
-                <span id="fixedFeesText{{ group.id }}" style="color:var(--text-main); font-weight:600;">Wifi + Rác</span>
-            </div>
-            <div id="previewDeductRow{{ group.id }}" style="display:none; justify-content:space-between; font-size:0.9rem; margin-bottom:0.5rem; color:var(--jb-pink);">
-                <span>Khấu trừ quỹ cọc:</span>
-                <span id="previewDeduct{{ group.id }}">- 0 đ</span>
-            </div>
-            <div style="border-top:1px solid var(--border-color); margin-top:0.75rem; padding-top:0.75rem; display:flex; justify-content:space-between; align-items:center;">
-                <span id="previewTotalLabel{{ group.id }}" style="font-weight:700; font-size:1rem; color:var(--text-main);">KHÁCH THANH TOÁN:</span>
-                <span id="previewTotal{{ group.id }}" style="font-family:var(--font-mono); font-size:1.3rem; font-weight:700; color:var(--danger);">0 đ</span>
-            </div>
+        <div id="combineInvoicePreviews{{ group.id }}" style="display: none; margin-bottom: 1.5rem;"></div>
+
+        <div id="previewTableContainer{{ group.id }}">
+            <div id="currentInvoiceTitle{{ group.id }}" style="font-weight: 700; margin-bottom: 0.75rem; color: var(--text-main); text-transform: uppercase;">CHI TIẾT DỰ KIẾN</div>
+
+            <table id="previewTable{{ group.id }}" style="width: 100%; border-collapse: collapse; font-family: 'Times New Roman', Times, serif; font-size: 1rem; color: black; background: white; border: 1px solid black; margin-bottom: 1rem;">
+                <thead>
+                    <tr style="background: #f4f4f5;">
+                        <th style="border: 1px solid black; padding: 8px;"></th>
+                        <th style="border: 1px solid black; padding: 8px;">SỐ CŨ</th>
+                        <th style="border: 1px solid black; padding: 8px;">SỐ MỚI</th>
+                        <th style="border: 1px solid black; padding: 8px;">SỐ DÙNG</th>
+                        <th style="border: 1px solid black; padding: 8px;">ĐƠN GIÁ</th>
+                        <th style="border: 1px solid black; padding: 8px;">THÀNH TIỀN</th>
+                    </tr>
+                </thead>
+                <tbody style="text-align: right;">
+                    <tr>
+                        <td style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">ĐIỆN</td>
+                        <td id="previewElecOld{{ group.id }}" style="border: 1px solid black; padding: 8px;"></td>
+                        <td id="previewElecNew{{ group.id }}" style="border: 1px solid black; padding: 8px;"></td>
+                        <td id="previewElecUsage{{ group.id }}" style="border: 1px solid black; padding: 8px;"></td>
+                        <td id="previewElecPrice{{ group.id }}" style="border: 1px solid black; padding: 8px;"></td>
+                        <td id="previewElec{{ group.id }}" style="border: 1px solid black; padding: 8px;">0</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">NƯỚC</td>
+                        <td id="previewWaterOld{{ group.id }}" style="border: 1px solid black; padding: 8px;"></td>
+                        <td id="previewWaterNew{{ group.id }}" style="border: 1px solid black; padding: 8px;"></td>
+                        <td id="previewWaterUsage{{ group.id }}" style="border: 1px solid black; padding: 8px;"></td>
+                        <td id="previewWaterPrice{{ group.id }}" style="border: 1px solid black; padding: 8px;"></td>
+                        <td id="previewWater{{ group.id }}" style="border: 1px solid black; padding: 8px;">0</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">RÁC</td>
+                        <td id="previewTrash{{ group.id }}" style="border: 1px solid black; padding: 8px;">0</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">WIFI</td>
+                        <td id="previewWifi{{ group.id }}" style="border: 1px solid black; padding: 8px;">0</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">GIÁ PHÒNG</td>
+                        <td id="previewRent{{ group.id }}" style="border: 1px solid black; padding: 8px;">0</td>
+                    </tr>
+                    <tr id="previewDeductRow{{ group.id }}" style="display:none;">
+                        <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold; color: red;">TRỪ CỌC</td>
+                        <td id="previewDeduct{{ group.id }}" style="border: 1px solid black; padding: 8px; color: red;">- 0</td>
+                    </tr>
+                    <tr>
+                        <td id="previewTotalLabel{{ group.id }}" colspan="5" style="border: 1px solid black; padding: 8px; text-align: center; font-weight: bold; color: red; font-size: 1.2rem;">TỔNG</td>
+                        <td id="previewTotal{{ group.id }}" style="border: 1px solid black; padding: 8px; font-weight: bold; color: red; font-size: 1.2rem;">0</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <div class="dialog-footer">
@@ -255,77 +336,100 @@
 </dialog>
 {% endfor %}
 
-<dialog id="receiptModal" style="max-width: 480px; padding: 0; overflow: hidden; background: #f4f4f5; border: none; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
-    <div id="invoiceReceiptContent" style="background: #ffffff; padding: 2.5rem; color: #09090b; font-family: var(--font-ui);">
+<dialog id="receiptModal" style="max-width: 600px; padding: 0; overflow: hidden; background: #ffffff; border: none; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+    <div id="invoiceReceiptContent" style="background: #ffffff; padding: 2.5rem; color: #000000; font-family: 'Times New Roman', Times, serif;">
 
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
-            <div>
-                <div style="font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; color: #18181b;">NĂM LỘC</div>
-                <div style="font-size: 0.8rem; color: #e81c79; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Hóa Đơn Thanh Toán</div>
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h2 style="margin: 0; font-size: 1.6rem; font-weight: bold; text-transform: uppercase;">PHÒNG TRỌ NĂM LỘC</h2>
+            <p style="margin: 5px 0 0; font-size: 1rem; font-style: italic;">Hóa Đơn Thanh Toán Tiền Phòng</p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem; font-size: 1rem; line-height: 1.5;">
+            <div style="display: flex; gap: 0.5rem;">
+                <strong>Phòng:</strong>
+                <span id="billRoom"></span>
             </div>
-            <div style="text-align: right;">
-                <div id="billDate" style="font-size: 0.85rem; font-weight: 600; color: #71717a;"></div>
+            <div style="display: flex; gap: 0.5rem;">
+                <strong>Khách thuê:</strong>
+                <span id="billGroup"></span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <strong>Ngày lập hóa đơn:</strong>
+                <span id="billDate"></span>
+            </div>
+            <div id="rowBillDateRange" style="display: none; gap: 0.5rem;">
+                <strong>Thời gian:</strong>
+                <span id="billDateRange"></span>
             </div>
         </div>
 
-        <div style="background: #f4f4f5; padding: 1.25rem; border-radius: 8px; margin-bottom: 2rem;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span style="color: #71717a; font-size: 0.85rem;">Phòng vận hành:</span>
-                <span id="billRoom" style="font-weight: 700; color:#09090b;"></span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span style="color: #71717a; font-size: 0.85rem;">Khách đại diện:</span>
-                <span id="billGroup" style="font-weight: 600; color:#09090b;"></span>
-            </div>
-            <div id="rowBillDateRange" style="display: flex; justify-content: space-between;">
-                <span style="color: #71717a; font-size: 0.85rem;">Kỳ thanh toán lẻ:</span>
-                <span id="billDateRange" style="font-size: 0.85rem; font-weight: 600; color:#09090b;"></span>
-            </div>
-        </div>
+        <table style="width: 100%; border-collapse: collapse; font-family: 'Times New Roman', Times, serif; font-size: 1rem; color: black; border: 1px solid black;">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid black; padding: 8px;"></th>
+                    <th style="border: 1px solid black; padding: 8px;">SỐ CŨ</th>
+                    <th style="border: 1px solid black; padding: 8px;">SỐ MỚI</th>
+                    <th style="border: 1px solid black; padding: 8px;">SỐ DÙNG</th>
+                    <th style="border: 1px solid black; padding: 8px;">ĐƠN GIÁ</th>
+                    <th style="border: 1px solid black; padding: 8px;">THÀNH TIỀN</th>
+                </tr>
+            </thead>
+            <tbody style="text-align: right;">
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">ĐIỆN</td>
+                    <td id="billElecOld" style="border: 1px solid black; padding: 8px;"></td>
+                    <td id="billElecNew" style="border: 1px solid black; padding: 8px;"></td>
+                    <td id="billElecUsage" style="border: 1px solid black; padding: 8px;"></td>
+                    <td id="billElecPrice" style="border: 1px solid black; padding: 8px;"></td>
+                    <td id="billElec" style="border: 1px solid black; padding: 8px;"></td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">NƯỚC</td>
+                    <td id="billWaterOld" style="border: 1px solid black; padding: 8px;"></td>
+                    <td id="billWaterNew" style="border: 1px solid black; padding: 8px;"></td>
+                    <td id="billWaterUsage" style="border: 1px solid black; padding: 8px;"></td>
+                    <td id="billWaterPrice" style="border: 1px solid black; padding: 8px;"></td>
+                    <td id="billWater" style="border: 1px solid black; padding: 8px;"></td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">RÁC</td>
+                    <td id="billTrash" style="border: 1px solid black; padding: 8px;"></td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">WIFI</td>
+                    <td id="billWifi" style="border: 1px solid black; padding: 8px;"></td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold;">GIÁ PHÒNG</td>
+                    <td id="billRent" style="border: 1px solid black; padding: 8px;"></td>
+                </tr>
+                <tr id="rowBillDeduct" style="display: none;">
+                    <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold; color: red;">TRỪ CỌC</td>
+                    <td id="billDeduct" style="border: 1px solid black; padding: 8px; color: red;"></td>
+                </tr>
 
-        <div style="margin-bottom: 2rem;">
-            <div style="display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid #e4e4e7; margin-bottom: 1rem; font-size: 0.75rem; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 0.5px;">
-                <span>Hạng mục</span>
-                <span>Thành tiền</span>
-            </div>
+                <tr id="rowBillPreviousDebt" style="display: none;">
+                    <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: left; font-weight: bold; font-style: italic; color: #52525b;">NỢ THÁNG TRƯỚC</td>
+                    <td id="billPreviousDebt" style="border: 1px solid black; padding: 8px; font-weight: bold;"></td>
+                </tr>
 
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.85rem;">
-                <span style="font-weight: 500; color: #09090b;">Tiền phòng gốc</span>
-                <span id="billRent" style="font-family: var(--font-mono); font-weight: 600; color:#09090b;"></span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.85rem;">
-                <span style="font-weight: 500; color: #3f3f46;">Tiêu thụ điện <span id="billElecUsage" style="font-size: 0.8rem; color: #a1a1aa; margin-left: 4px;"></span></span>
-                <span id="billElec" style="font-family: var(--font-mono); font-weight: 600; color:#09090b;"></span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.85rem;">
-                <span style="font-weight: 500; color: #3f3f46;">Tiêu thụ nước <span id="billWaterUsage" style="font-size: 0.8rem; color: #a1a1aa; margin-left: 4px;"></span></span>
-                <span id="billWater" style="font-family: var(--font-mono); font-weight: 600; color:#09090b;"></span>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.85rem;">
-                <span style="font-weight: 500; color: #3f3f46;">Phí Wifi cố định</span>
-                <span id="billWifi" style="font-family: var(--font-mono); font-weight: 600; color:#09090b;"></span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.85rem;">
-                <span style="font-weight: 500; color: #3f3f46;">Phí Rác cố định</span>
-                <span id="billTrash" style="font-family: var(--font-mono); font-weight: 600; color:#09090b;"></span>
-            </div>
-
-            <div id="rowBillDeduct" style="display: none; justify-content: space-between; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed #e4e4e7; color: #ef4444;">
-                <span style="font-weight: 600;">Trừ quỹ tiền cọc</span>
-                <span id="billDeduct" style="font-family: var(--font-mono); font-weight: 700;"></span>
-            </div>
-        </div>
-
-        <div style="background: #18181b; color: #ffffff; padding: 1.5rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
-            <span id="billTotalLabel" style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #a1a1aa;">Tổng thanh toán</span>
-            <span id="billTotal" style="font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: #00bfff;"></span>
-        </div>
+                <tr>
+                    <td id="billTotalLabel" colspan="5" style="border: 1px solid black; padding: 8px; text-align: center; font-weight: bold; color: red; font-size: 1.2rem;">TỔNG</td>
+                    <td id="billTotal" style="border: 1px solid black; padding: 8px; font-weight: bold; color: red; font-size: 1.2rem;"></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
-    <div style="background: #f4f4f5; padding: 1.25rem; display: flex; gap: 1rem; border-top: 1px solid #e4e4e7;">
+    <div style="background: #f4f4f5; padding: 1.25rem; display: flex; gap: 1rem; border-top: 1px solid #e4e4e7; font-family: var(--font-ui); flex-wrap: wrap; align-items: center;">
         <button type="button" style="flex: 1; padding: 0.85rem; border-radius: 8px; font-weight: 600; background: #ffffff; border: 1px solid #d4d4d8; color: #18181b; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('receiptModal').close(); window.location.reload();">Đóng cửa sổ</button>
-        <button type="button" style="flex: 2; padding: 0.85rem; border-radius: 8px; font-weight: 600; background: #18181b; border: none; color: #ffffff; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="saveInvoiceImage()">⬇️ Lưu Ảnh Hóa Đơn</button>
+
+        <div style="flex: 2; display: flex; gap: 0.5rem; align-items: center; min-width: 250px;">
+            <input type="text" id="inputCombineCode" class="input-control" placeholder="Mã hoá đơn cần gộp" style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid #d4d4d8; margin: 0; font-size: 0.9rem;">
+            <button type="button" style="padding: 0.75rem 1rem; border-radius: 8px; background: #f59e0b; color: white; border: none; font-weight: 600; cursor: pointer;">Gộp</button>
+        </div>
+
+        <button type="button" style="flex: 1; padding: 0.85rem; border-radius: 8px; font-weight: 600; background: #18181b; border: none; color: #ffffff; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="saveInvoiceImage()">Lưu ảnh</button>
     </div>
 </dialog>
 {% endblock %}

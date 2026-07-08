@@ -1,4 +1,5 @@
 import hashlib
+import unicodedata
 
 from app import models, db
 from datetime import date, datetime
@@ -193,9 +194,7 @@ def create_invoice(room_id: int, data: dict):
     # Tính Tổng
     total = elec_cost + water_cost + applied_rent + applied_wifi + applied_trash - deducted_deposit
 
-    inv_code = f"INV-{datetime.now().strftime('%y%m%d-%H%M%S')}-R{room.id}"
-
-    # ... (Các phần khởi tạo Invoice và db.session.commit() giữ nguyên như bản cũ) ...
+    inv_code = f"{datetime.now().strftime('%d%m%Y-%H%M%S')}-{unicodedata.normalize('NFD', room.room_name).encode('ascii', 'ignore').decode('utf-8').replace(' ', '')}"
 
     invoice = models.Invoice(
         invoice_code=inv_code,

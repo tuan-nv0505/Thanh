@@ -1,11 +1,9 @@
-// Universal API submission system replacing Bootstrap engine
 async function apiSubmit(event, url, method) {
     event.preventDefault();
     const form = event.target;
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
-    // Explicit checking for custom native components (Xử lý Checkbox)
     const repCheck = form.querySelector('[name="is_representative"]');
     if (repCheck) data.is_representative = repCheck.checked;
 
@@ -22,7 +20,6 @@ async function apiSubmit(event, url, method) {
 
         if (res.ok) {
             if (url.includes('/invoices')) {
-                // Tự động lấy cấu hình Wifi/Rác của phòng hiện tại từ Popup đang mở
                 const openDialog = form.closest('dialog');
                 let wFee = 0;
                 let tFee = 0;
@@ -33,14 +30,11 @@ async function apiSubmit(event, url, method) {
                     openDialog.close();
                 }
 
-                // Gắn thêm ngày lưu trú lẻ vào data
                 result.data.start_date = data.start_date;
                 result.data.end_date = data.end_date;
 
-                // Gọi hàm hiển thị hóa đơn và truyền kèm phí Wifi, Rác để tách dòng
                 showInvoiceReceipt(result.data, wFee, tFee);
             } else {
-                // Các thao tác khác (Thêm/Sửa/Xóa phòng, khách, nhóm) thì reload lại trang
                 window.location.reload();
             }
         } else {
@@ -56,84 +50,83 @@ function showInvoiceReceipt(data, roomWifi = 0, roomTrash = 0) {
     document.getElementById('billRoom').innerText = data.room_name;
     document.getElementById('billGroup').innerText = data.group_name;
 
-    // Format ngày
-    const dateObj = data.created_at ? new Date(data.created_at) : new Date();
+    const dateObj = new Date();
     const dateString = dateObj.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
     document.getElementById('billDate').innerText = dateString;
 
-    const rangeBlock = document.getElementById('rowBillDateRange');
-    const rangeText = document.getElementById('billDateRange');
-    if (data.start_date && data.end_date) {
-        const reverseDate = (dStr) => dStr.split('-').reverse().join('/');
-        rangeBlock.style.display = 'flex';
-        rangeText.innerText = `${reverseDate(data.start_date)} - ${reverseDate(data.end_date)}`;
-    } else {
-        rangeBlock.style.display = 'none';
-    }
+//    const rangeBlock = document.getElementById('rowBillDateRange');
+//    const rangeText = document.getElementById('billDateRange');
+//    if (data.start_date && data.end_date) {
+//        const reverseDate = (dStr) => dStr.split('-').reverse().join('/');
+//        rangeBlock.style.display = 'flex';
+//        rangeText.innerText = `${reverseDate(data.start_date)} - ${reverseDate(data.end_date)}`;
+//    } else {
+//        rangeBlock.style.display = 'none';
+//    }
 
-    // Gán dữ liệu điện, nước, phòng
-    document.getElementById('billElecUsage').innerText = `(${data.elec_usage} kWh)`;
-    document.getElementById('billElec').innerText = `${data.elec_cost.toLocaleString('vi-VN')} đ`;
+    document.getElementById('billRent').innerText = data.room_rent.toLocaleString('vi-VN');
 
-    document.getElementById('billWaterUsage').innerText = `(${data.water_usage} m³)`;
-    document.getElementById('billWater').innerText = `${data.water_cost.toLocaleString('vi-VN')} đ`;
+    // Điện
+    document.getElementById('billElecOld').innerText = data.elec_old;
+    document.getElementById('billElecNew').innerText = data.elec_new;
+    document.getElementById('billElecUsage').innerText = data.elec_usage;
+    document.getElementById('billElecPrice').innerText = data.elec_price.toLocaleString('vi-VN');
+    document.getElementById('billElec').innerText = data.elec_cost.toLocaleString('vi-VN');
 
-    document.getElementById('billRent').innerText = `${data.room_rent.toLocaleString('vi-VN')} đ`;
+    // Nước
+    document.getElementById('billWaterOld').innerText = data.water_old;
+    document.getElementById('billWaterNew').innerText = data.water_new;
+    document.getElementById('billWaterUsage').innerText = data.water_usage;
+    document.getElementById('billWaterPrice').innerText = data.water_price.toLocaleString('vi-VN');
+    document.getElementById('billWater').innerText = data.water_cost.toLocaleString('vi-VN');
 
-    // Tách riêng tiền Wifi và Rác
+    // Wifi, Rác
     let wifiCost = 0;
     let trashCost = 0;
     if (data.services_fee > 0) {
         wifiCost = roomWifi;
         trashCost = roomTrash;
     }
+    document.getElementById('billWifi').innerText = wifiCost.toLocaleString('vi-VN');
+    document.getElementById('billTrash').innerText = trashCost.toLocaleString('vi-VN');
 
-    document.getElementById('billWifi').innerText = `${wifiCost.toLocaleString('vi-VN')} đ`;
-    document.getElementById('billTrash').innerText = `${trashCost.toLocaleString('vi-VN')} đ`;
-
+    // Khấu trừ
     const deductBlock = document.getElementById('rowBillDeduct');
     if (data.deducted > 0) {
-        deductBlock.style.display = 'flex';
-        document.getElementById('billDeduct').innerText = `- ${data.deducted.toLocaleString('vi-VN')} đ`;
+        deductBlock.style.display = 'table-row';
+        document.getElementById('billDeduct').innerText = `-` + data.deducted.toLocaleString('vi-VN');
     } else {
-        deductBlock.style.display = 'none';
+        if(deductBlock) deductBlock.style.display = 'none';
     }
 
+    // Tổng
     const totalLabel = document.getElementById('billTotalLabel');
     const totalValue = document.getElementById('billTotal');
 
     if (data.total < 0) {
-        totalLabel.innerText = "HOÀN LẠI KHÁCH";
-        totalValue.innerText = Math.abs(data.total).toLocaleString('vi-VN') + ' đ';
-        totalValue.style.color = "#10b981"; // Màu xanh dương
+        totalLabel.innerText = "HOÀN KHÁCH";
+        totalValue.innerText = Math.abs(data.total).toLocaleString('vi-VN');
     } else {
-        totalLabel.innerText = "TỔNG THANH TOÁN";
-        totalValue.innerText = data.total.toLocaleString('vi-VN') + ' đ';
-        totalValue.style.color = "#00bfff"; // Màu xanh lam Jetbrains
+        totalLabel.innerText = "TỔNG";
+        totalValue.innerText = data.total.toLocaleString('vi-VN');
     }
 
-    // Hiển thị modal
     document.getElementById('receiptModal').showModal();
 }
+
 function saveInvoiceImage() {
     const content = document.getElementById('invoiceReceiptContent');
     const name = document.getElementById('billRoom').innerText;
 
     html2canvas(content).then(canvas => {
-        // Tạo file ảnh và tải xuống
         let link = document.createElement('a');
         link.download = `HoaDon_${name.replace(/\s+/g, '')}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
 
-        // Đóng modal hóa đơn hiện tại
         const receiptModal = document.getElementById('receiptModal');
         if (receiptModal) receiptModal.close();
-
-        // Hiện thông báo thành công
         alert("Tải ảnh thành công!");
-
-        // Tải lại trang để reset dữ liệu và quay về room detail
         window.location.reload();
     }).catch(err => {
         alert("Có lỗi xảy ra khi tạo ảnh hóa đơn!");
@@ -157,85 +150,95 @@ function tinhTongTien(groupId, monthlyRent, wifiFee, trashFee) {
     const dialog = document.getElementById('createInvoiceModal' + groupId);
     if (!dialog) return;
 
+    // 1. Tính tiền phòng (Nguyên tháng hoặc Tính lẻ theo ngày)
+    const startDateInput = dialog.querySelector('[name="start_date"]').value;
+    const endDateInput = dialog.querySelector('[name="end_date"]').value;
+    const pricePerDayInput = dialog.querySelector('[name="room_price_per_day"]').value;
+    const rentDaysInput = dialog.querySelector('[name="rent_days"]');
+    const calculatedDaysText = dialog.querySelector('#calculatedDays' + groupId);
+
+    let roomCost = monthlyRent;
+
+    if (startDateInput && endDateInput) {
+        const start = new Date(startDateInput);
+        const end = new Date(endDateInput);
+        const diffTime = end - start;
+        if (diffTime >= 0) {
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            rentDaysInput.value = diffDays;
+
+            let pricePerDay = parseFloat(pricePerDayInput);
+            if (isNaN(pricePerDay) || pricePerDay <= 0) {
+                pricePerDay = monthlyRent / 30; // Mặc định chia 30 ngày
+            }
+
+            roomCost = diffDays * pricePerDay;
+            if (calculatedDaysText) {
+                calculatedDaysText.innerText = `* Tính lẻ: ${diffDays} ngày x ${pricePerDay.toLocaleString('vi-VN')} đ = ${roomCost.toLocaleString('vi-VN')} đ`;
+            }
+        } else {
+            rentDaysInput.value = "";
+            if (calculatedDaysText) calculatedDaysText.innerText = "* Ngày kết thúc phải sau ngày bắt đầu!";
+        }
+    } else {
+        rentDaysInput.value = "";
+        if (calculatedDaysText) calculatedDaysText.innerText = "* Mặc định: Tính trọn tháng";
+    }
+
+    // 2. Tính tiền Điện & Nước
     const oldE = parseFloat(dialog.querySelector('[name="old_electricity_index"]').value) || 0;
     const newE = parseFloat(dialog.querySelector('[name="new_electricity_index"]').value) || 0;
     const priceE = parseFloat(dialog.querySelector('[name="electricity_price"]').value) || 0;
-    const eCost = Math.max(0, (newE - oldE) * priceE);
+    const eUsage = newE >= oldE ? newE - oldE : 0;
+    const eCost = eUsage * priceE;
 
     const oldW = parseFloat(dialog.querySelector('[name="old_water_index"]').value) || 0;
     const newW = parseFloat(dialog.querySelector('[name="new_water_index"]').value) || 0;
     const priceW = parseFloat(dialog.querySelector('[name="water_price"]').value) || 0;
-    const wCost = Math.max(0, (newW - oldW) * priceW);
+    const wUsage = newW >= oldW ? newW - oldW : 0;
+    const wCost = wUsage * priceW;
 
-    const startInput = dialog.querySelector('[name="start_date"]');
-    const endInput = dialog.querySelector('[name="end_date"]');
-    const hiddenDays = dialog.querySelector('[name="rent_days"]');
-    const daysText = dialog.querySelector('#calculatedDays' + groupId);
-    const customPriceStr = dialog.querySelector('[name="room_price_per_day"]').value;
+    // 3. Phí dịch vụ cố định
+    const appliedWifi = wifiFee || 0;
+    const appliedTrash = trashFee || 0;
 
-    let rentDaysStr = '';
+    // --- CẬP NHẬT TRỰC TIẾP LÊN BẢNG HTML ---
+    const updateText = (id, val) => { const el = dialog.querySelector(id); if (el) el.innerText = val; };
 
-    if (startInput && endInput && startInput.value && endInput.value) {
-        const start = new Date(startInput.value);
-        const end = new Date(endInput.value);
-        const diff = end - start;
+    updateText('#previewRent' + groupId, roomCost.toLocaleString('vi-VN'));
 
-        if (diff >= 0) {
-            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-            rentDaysStr = days.toString();
-            if (hiddenDays) hiddenDays.value = days;
-            if (daysText) daysText.innerHTML = `Thời gian lẻ: <span style="color:var(--jb-blue);font-weight:700">${days} ngày</span>`;
-        } else {
-            if (hiddenDays) hiddenDays.value = '';
-            if (daysText) daysText.innerHTML = `<span style="color:var(--danger)">Ngày kết thúc lỗi!</span>`;
-        }
-    } else {
-        if (hiddenDays) hiddenDays.value = '';
-        if (daysText) daysText.innerHTML = '* Mặc định: Tính trọn tháng';
-    }
+    updateText('#previewElecOld' + groupId, oldE.toString());
+    updateText('#previewElecNew' + groupId, newE.toString());
+    updateText('#previewElecUsage' + groupId, eUsage.toString());
+    updateText('#previewElecPrice' + groupId, priceE.toLocaleString('vi-VN'));
+    updateText('#previewElec' + groupId, eCost.toLocaleString('vi-VN'));
 
-    let roomCost = monthlyRent;
-    let appliedWifi = wifiFee;
-    let appliedTrash = trashFee;
-    const fixedFeesText = dialog.querySelector('#fixedFeesText' + groupId);
+    updateText('#previewWaterOld' + groupId, oldW.toString());
+    updateText('#previewWaterNew' + groupId, newW.toString());
+    updateText('#previewWaterUsage' + groupId, wUsage.toString());
+    updateText('#previewWaterPrice' + groupId, priceW.toLocaleString('vi-VN'));
+    updateText('#previewWater' + groupId, wCost.toLocaleString('vi-VN'));
 
-    if (rentDaysStr !== '') {
-        const days = parseFloat(rentDaysStr);
-        if (days >= 0) {
-            let pricePerDay = monthlyRent / 30;
-            if (customPriceStr.trim() !== '') {
-                const customPrice = parseFloat(customPriceStr);
-                if (!isNaN(customPrice) && customPrice >= 0) pricePerDay = customPrice;
-            }
-            roomCost = days * pricePerDay;
+    updateText('#previewWifi' + groupId, appliedWifi.toLocaleString('vi-VN'));
+    updateText('#previewTrash' + groupId, appliedTrash.toLocaleString('vi-VN'));
 
-            if (days < 10) {
-                appliedWifi = 0;
-                appliedTrash = 0;
-                if (fixedFeesText) fixedFeesText.innerHTML = 'Miễn phí dịch vụ (< 10 ngày)';
-            } else {
-                if (fixedFeesText) fixedFeesText.innerHTML = `Wifi & Rác chuẩn`;
-            }
-        }
-    } else {
-        if (fixedFeesText) fixedFeesText.innerHTML = `Wifi + Rác định kỳ`;
-    }
-
+    // 4. Xử lý logic Trừ Cọc
     let deductAmount = 0;
     const deductCheck = dialog.querySelector('#deductCheck' + groupId);
     const previewDeductRow = dialog.querySelector('#previewDeductRow' + groupId);
-    const previewDeductText = dialog.querySelector('#previewDeduct' + groupId);
 
     if (deductCheck && deductCheck.checked) {
         deductAmount = parseFloat(deductCheck.value) || 0;
-        if (previewDeductRow && previewDeductText) {
-            previewDeductRow.style.display = 'flex';
-            previewDeductText.innerText = `- ${deductAmount.toLocaleString('vi-VN')} đ`;
+        if (previewDeductRow) {
+            previewDeductRow.style.display = 'table-row';
+            updateText('#previewDeduct' + groupId, `- ` + deductAmount.toLocaleString('vi-VN'));
         }
     } else {
         if (previewDeductRow) previewDeductRow.style.display = 'none';
     }
 
+    // 5. Chốt Tổng Cộng Cuối Cùng
+    // 5. Chốt Tổng Cộng Cuối Cùng
     const subTotal = roomCost + eCost + wCost + appliedWifi + appliedTrash;
     const diffFinal = deductAmount - subTotal;
 
@@ -243,90 +246,80 @@ function tinhTongTien(groupId, monthlyRent, wifiFee, trashFee) {
     const totalLabel = dialog.querySelector('#previewTotalLabel' + groupId);
 
     if (diffFinal > 0) {
-        if (totalLabel) totalLabel.innerText = "TIỀN HOÀN KHÁCH:";
+        if (totalLabel) totalLabel.innerText = "HOÀN TIỀN KHÁCH";
         if (totalElement) {
-            totalElement.innerText = diffFinal.toLocaleString('vi-VN') + ' đ';
-            totalElement.style.color = "var(--status-active)";
+            totalElement.innerText = diffFinal.toLocaleString('vi-VN');
+            totalElement.style.color = "red"; // Đổi thành chữ ĐỎ cho hoàn tiền
         }
     } else {
         const toPay = Math.abs(diffFinal);
-        if (totalLabel) totalLabel.innerText = "KHÁCH THANH TOÁN:";
+        if (totalLabel) totalLabel.innerText = "KHÁCH THANH TOÁN";
         if (totalElement) {
-            totalElement.innerText = toPay.toLocaleString('vi-VN') + ' đ';
-            totalElement.style.color = "var(--danger)";
+            totalElement.innerText = toPay.toLocaleString('vi-VN');
+            totalElement.style.color = "#10b981"; // Đổi thành chữ XANH cho khách cần trả
         }
     }
+
+    // Đảm bảo hiển thị lại bảng preview gốc và ẩn vùng gộp nếu còn sót
+    const previewContainer = dialog.querySelector('#previewTableContainer' + groupId);
+    if (previewContainer) previewContainer.style.display = 'block';
+
+    const combineContainer = dialog.querySelector('#combineInvoicePreviews' + groupId);
+    if (combineContainer) combineContainer.style.display = 'none';
 }
 
-// Global hook up for Dialog Native Elements on invocation
 document.addEventListener('DOMContentLoaded', () => {
-    // Standardizing close triggers across dialog workflows
     document.querySelectorAll('dialog').forEach(dialog => {
+        dialog.addEventListener('close', () => {
+            const form = dialog.querySelector('form');
+            if (form) {
+                form.reset();
+                const deductRow = dialog.querySelector('[id^="previewDeductRow"]');
+                if (deductRow) deductRow.style.display = 'none';
+
+                const calculatedDays = dialog.querySelector('[id^="calculatedDays"]');
+                if (calculatedDays) calculatedDays.innerHTML = '* Mặc định: Tính trọn tháng';
+
+                // Dọn dẹp form khi đóng popup gộp
+                const combineArea = dialog.querySelector('[id^="combineInvoiceArea"]');
+                if (combineArea) combineArea.style.display = 'none';
+
+                const combinePreviews = dialog.querySelector('[id^="combineInvoicePreviews"]');
+                if (combinePreviews) combinePreviews.style.display = 'none';
+
+                const replaceId = dialog.querySelector('[name="replace_invoice_id"]');
+                if (replaceId) replaceId.value = '';
+
+                const combineStatus = dialog.querySelector('[id^="combineStatus"]');
+                if (combineStatus) combineStatus.innerHTML = '';
+
+                const currentTitle = dialog.querySelector('[id^="currentInvoiceTitle"]');
+                if (currentTitle) currentTitle.innerText = 'CHI TIẾT DỰ KIẾN';
+            }
+        });
         dialog.addEventListener('click', (e) => {
             if (e.target === dialog) dialog.close();
         });
     });
 });
 
-// =================================================================
-// HỆ THỐNG ĐIỀU KHIỂN NATIVE DIALOG (POPUP) THÔNG MINH
-// =================================================================
-
-// 1. Hàm mở popup Lập Hóa Đơn và tự động tính tiền ngay lập tức
 function openInvoiceModal(groupId) {
     const dialog = document.getElementById('createInvoiceModal' + groupId);
     if (dialog) {
-        dialog.showModal(); // Mở popup
-
-        // Lấy thông số gốc từ thuộc tính data- của thẻ dialog
+        dialog.showModal();
         const mRent = parseFloat(dialog.getAttribute('data-monthly-rent')) || 0;
         const wFee = parseFloat(dialog.getAttribute('data-wifi-fee')) || 0;
         const tFee = parseFloat(dialog.getAttribute('data-trash-fee')) || 0;
-
-        // Gọi hàm tính tiền ngay lập tức để xổ giá tổng
         tinhTongTien(groupId, mRent, wFee, tFee);
     }
 }
 
-// 2. Tự động LÀM SẠCH FORM khi bất kỳ Popup nào bị đóng
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('dialog').forEach(dialog => {
-
-        // Lắng nghe sự kiện 'close' (Bắt được cả khi bấm Hủy, nút X, hoặc phím ESC)
-        dialog.addEventListener('close', () => {
-            const form = dialog.querySelector('form');
-            if (form) {
-                form.reset(); // Dọn sạch toàn bộ chữ đã gõ
-
-                // Ẩn dòng "Khấu trừ cọc" nếu trước đó đã tích chọn
-                const deductRow = dialog.querySelector('[id^="previewDeductRow"]');
-                if (deductRow) deductRow.style.display = 'none';
-
-                // Reset lại thông báo thời gian ở lẻ
-                const calculatedDays = dialog.querySelector('[id^="calculatedDays"]');
-                if (calculatedDays) calculatedDays.innerHTML = '* Mặc định: Tính trọn tháng';
-            }
-        });
-
-        // Click ra khoảng không màu đen bên ngoài để đóng popup
-        dialog.addEventListener('click', (e) => {
-            if (e.target === dialog) dialog.close();
-        });
-    });
-});
-
-// =================================================================
-// HỆ THỐNG CHUYỂN ĐỔI THEME (DARK / LIGHT)
-// =================================================================
-
-// Icon SVG dạng Sun (cho Light Mode) và Moon (cho Dark Mode)
 const ICON_SUN = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
 const ICON_MOON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
 
 function renderThemeIcon(currentTheme) {
     const btn = document.getElementById('themeToggleBtn');
     if (!btn) return;
-    // Bấm để sang sáng (hiện hình Mặt trời) - Bấm để sang tối (hiện hình Mặt trăng)
     btn.innerHTML = currentTheme === 'dark' ? ICON_SUN : ICON_MOON;
 }
 
@@ -334,16 +327,33 @@ function toggleTheme() {
     const root = document.documentElement;
     const currentTheme = root.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-    // Gán theme mới vào HTML và lưu vào máy tính
     root.setAttribute('data-theme', newTheme);
     localStorage.setItem('jb-theme', newTheme);
-
     renderThemeIcon(newTheme);
 }
 
-// Chạy tự động để hiển thị đúng icon khi mới nạp trang
 document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('jb-theme') || 'dark';
     renderThemeIcon(savedTheme);
 });
+
+// --- XEM VÀ TẢI LẠI HÓA ĐƠN CŨ ---
+async function viewOldInvoice(invoiceId) {
+    try {
+        const res = await fetch(`/api/invoices/${invoiceId}/full`);
+        const data = await res.json();
+
+        if (!res.ok) { alert(data.error); return; }
+
+        // Gọi lại hàm showInvoiceReceipt có sẵn để vẽ lên Modal In
+        showInvoiceReceipt(data, data.wifi_fee, data.trash_fee);
+
+        // Reset lại thanh nhập mã tránh nhầm lẫn
+        const inputCode = document.getElementById('inputCombineCode');
+        if(inputCode) inputCode.value = '';
+
+    } catch(e) {
+        console.error(e);
+        alert("Lỗi khi tải dữ liệu hóa đơn!");
+    }
+}
