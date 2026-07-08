@@ -47,6 +47,14 @@ async function apiSubmit(event, url, method) {
 }
 
 function showInvoiceReceipt(data, roomWifi = 0, roomTrash = 0) {
+    window.currentBillTotalValue = data.total; // Lưu lại để tính tổng gộp
+
+    // Ẩn các trường gộp đi mỗi khi mở lại modal mới
+    document.getElementById('oldInvoiceSection').style.display = 'none';
+    document.getElementById('currentInvoiceTitleLabel').style.display = 'none';
+    const rowCombo = document.getElementById('rowCombinedTotal');
+    if(rowCombo) rowCombo.style.display = 'none';
+
     document.getElementById('billRoom').innerText = data.room_name;
     document.getElementById('billGroup').innerText = data.group_name;
 
@@ -162,7 +170,7 @@ function tinhTongTien(groupId, monthlyRent, wifiFee, trashFee) {
     if (startDateInput && endDateInput) {
         const start = new Date(startDateInput);
         const end = new Date(endDateInput);
-        const diffTime = end - start;
+        const diffTime = end - start + 1;
         if (diffTime >= 0) {
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             rentDaysInput.value = diffDays;
@@ -198,9 +206,17 @@ function tinhTongTien(groupId, monthlyRent, wifiFee, trashFee) {
     const wUsage = newW >= oldW ? newW - oldW : 0;
     const wCost = wUsage * priceW;
 
-    // 3. Phí dịch vụ cố định
-    const appliedWifi = wifiFee || 0;
-    const appliedTrash = trashFee || 0;
+    // 3. Phí dịch vụ cố định (ÁP DỤNG LOGIC DƯỚI 10 NGÀY = MIỄN PHÍ)
+    let appliedWifi = wifiFee || 0;
+    let appliedTrash = trashFee || 0;
+
+    if (rentDaysInput.value !== "") {
+        const diffDays = parseInt(rentDaysInput.value);
+        if (diffDays < 10) {
+            appliedWifi = 0;
+            appliedTrash = 0;
+        }
+    }
 
     // --- CẬP NHẬT TRỰC TIẾP LÊN BẢNG HTML ---
     const updateText = (id, val) => { const el = dialog.querySelector(id); if (el) el.innerText = val; };
@@ -237,7 +253,6 @@ function tinhTongTien(groupId, monthlyRent, wifiFee, trashFee) {
         if (previewDeductRow) previewDeductRow.style.display = 'none';
     }
 
-    // 5. Chốt Tổng Cộng Cuối Cùng
     // 5. Chốt Tổng Cộng Cuối Cùng
     const subTotal = roomCost + eCost + wCost + appliedWifi + appliedTrash;
     const diffFinal = deductAmount - subTotal;
@@ -355,5 +370,145 @@ async function viewOldInvoice(invoiceId) {
     } catch(e) {
         console.error(e);
         alert("Lỗi khi tải dữ liệu hóa đơn!");
+    }
+}
+
+// Biến toàn cục để lưu lại tổng tiền của hóa đơn hiện tại
+window.currentBillTotalValue = 0;
+
+function showInvoiceReceipt(data, roomWifi = 0, roomTrash = 0) {
+    // 1. Lưu lại tổng tiền hiện tại để tính gộp nếu cần
+    window.currentBillTotalValue = data.total;
+
+    // 2. Ẩn các phần gộp đi mỗi khi mở lại modal mới (để tránh hiển thị lại dữ liệu gộp từ lần trước)
+    const oldTbody = document.getElementById('oldInvoiceTbody');
+    if (oldTbody) oldTbody.style.display = 'none';
+
+    const curHeaderRow = document.getElementById('currentInvoiceHeaderRow');
+    if (curHeaderRow) curHeaderRow.style.display = 'none';
+
+    const rowCombo = document.getElementById('rowCombinedTotal');
+    if (rowCombo) rowCombo.style.display = 'none';
+
+    // 3. Đổ dữ liệu hóa đơn hiện tại
+    document.getElementById('billRoom').innerText = data.room_name;
+    document.getElementById('billGroup').innerText = data.group_name;
+
+    const dateObj = new Date();
+    const dateString = dateObj.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    document.getElementById('billDate').innerText = dateString;
+
+    document.getElementById('billRent').innerText = data.room_rent.toLocaleString('vi-VN');
+
+    // Điện
+    document.getElementById('billElecOld').innerText = data.elec_old;
+    document.getElementById('billElecNew').innerText = data.elec_new;
+    document.getElementById('billElecUsage').innerText = data.elec_usage;
+    document.getElementById('billElecPrice').innerText = data.elec_price.toLocaleString('vi-VN');
+    document.getElementById('billElec').innerText = data.elec_cost.toLocaleString('vi-VN');
+
+    // Nước
+    document.getElementById('billWaterOld').innerText = data.water_old;
+    document.getElementById('billWaterNew').innerText = data.water_new;
+    document.getElementById('billWaterUsage').innerText = data.water_usage;
+    document.getElementById('billWaterPrice').innerText = data.water_price.toLocaleString('vi-VN');
+    document.getElementById('billWater').innerText = data.water_cost.toLocaleString('vi-VN');
+
+    // Wifi, Rác
+    let wifiCost = 0;
+    let trashCost = 0;
+    if (data.services_fee > 0) {
+        wifiCost = roomWifi;
+        trashCost = roomTrash;
+    }
+    document.getElementById('billWifi').innerText = wifiCost.toLocaleString('vi-VN');
+    document.getElementById('billTrash').innerText = trashCost.toLocaleString('vi-VN');
+
+    // Khấu trừ (Cọc)
+    const deductBlock = document.getElementById('rowBillDeduct');
+    if (data.deducted > 0) {
+        deductBlock.style.display = 'table-row';
+        document.getElementById('billDeduct').innerText = `- ` + data.deducted.toLocaleString('vi-VN');
+    } else {
+        if(deductBlock) deductBlock.style.display = 'none';
+    }
+
+    // Tổng tháng này
+    const totalLabel = document.getElementById('billTotalLabel');
+    const totalValue = document.getElementById('billTotal');
+
+    if (data.total < 0) {
+        totalLabel.innerText = "HOÀN KHÁCH";
+        totalValue.innerText = Math.abs(data.total).toLocaleString('vi-VN');
+    } else {
+        totalLabel.innerText = "TỔNG THÁNG NÀY";
+        totalValue.innerText = data.total.toLocaleString('vi-VN');
+    }
+
+    document.getElementById('receiptModal').showModal();
+}
+
+async function combineInvoice() {
+    const codeInput = document.getElementById('inputCombineCode');
+    const code = codeInput.value.trim();
+
+    if(!code) {
+        alert("Vui lòng nhập mã hóa đơn cũ cần gộp!");
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/invoices/code/${encodeURIComponent(code)}`);
+        const oldData = await res.json();
+
+        if (!res.ok) {
+            alert(oldData.error || "Không tìm thấy hóa đơn này!");
+            return;
+        }
+
+        // Bật hiển thị phân đoạn bảng hóa đơn cũ dạng table-row-group
+        const oldTbody = document.getElementById('oldInvoiceTbody');
+        if (oldTbody) oldTbody.style.display = 'table-row-group';
+
+        // Bật tiêu đề chia cách "Hóa đơn tháng này"
+        const curHeaderRow = document.getElementById('currentInvoiceHeaderRow');
+        if (curHeaderRow) curHeaderRow.style.display = 'table-row';
+
+        // Đổ dữ liệu vào các ID của bảng cũ
+        document.getElementById('oldBillCode').innerText = oldData.invoice_code;
+        document.getElementById('oldBillElecOld').innerText = oldData.elec_old;
+        document.getElementById('oldBillElecNew').innerText = oldData.elec_new;
+        document.getElementById('oldBillElecUsage').innerText = oldData.elec_usage;
+        document.getElementById('oldBillElecPrice').innerText = oldData.elec_price.toLocaleString('vi-VN');
+        document.getElementById('oldBillElec').innerText = oldData.elec_cost.toLocaleString('vi-VN');
+
+        document.getElementById('oldBillWaterOld').innerText = oldData.water_old;
+        document.getElementById('oldBillWaterNew').innerText = oldData.water_new;
+        document.getElementById('oldBillWaterUsage').innerText = oldData.water_usage;
+        document.getElementById('oldBillWaterPrice').innerText = oldData.water_price.toLocaleString('vi-VN');
+        document.getElementById('oldBillWater').innerText = oldData.water_cost.toLocaleString('vi-VN');
+
+        // Cập nhật Wifi và Rác riêng biệt
+        document.getElementById('oldBillTrash').innerText = oldData.trash_fee.toLocaleString('vi-VN');
+        document.getElementById('oldBillWifi').innerText = oldData.wifi_fee.toLocaleString('vi-VN');
+
+        document.getElementById('oldBillRent').innerText = oldData.room_rent.toLocaleString('vi-VN');
+        document.getElementById('oldBillTotal').innerText = oldData.total.toLocaleString('vi-VN');
+
+        // Tính và hiển thị tổng Gộp cuối cùng
+        const grandTotal = window.currentBillTotalValue + oldData.total;
+
+        const rowCombo = document.getElementById('rowCombinedTotal');
+        if(rowCombo) {
+            rowCombo.style.display = 'table-row';
+            document.getElementById('billCombinedTotal').innerText = grandTotal.toLocaleString('vi-VN') + ' đ';
+        }
+
+        // Xóa mã vừa nhập sau khi gộp xong
+        codeInput.value = '';
+
+    } catch (e) {
+        console.error(e);
+        alert("Có lỗi kết nối khi lấy dữ liệu hóa đơn gộp!");
     }
 }

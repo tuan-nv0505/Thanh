@@ -153,3 +153,37 @@ def get_full_invoice_data(invoice_id):
         "total": inv.total_amount,
         "created_at": inv.created_at.strftime('%d/%m/%Y')
     }), 200
+
+# API: Lấy thông tin hóa đơn dựa vào mã hóa đơn (Dùng cho chức năng Gộp)
+@api_bp.route('/invoices/code/<string:invoice_code>', methods=['GET'])
+@login_required
+def get_invoice_by_code(invoice_code):
+    inv = models.Invoice.query.filter_by(invoice_code=invoice_code).first()
+    if not inv:
+        return jsonify({"error": "Không tìm thấy hóa đơn với mã này"}), 404
+
+    room = inv.room
+    group = models.RentGroup.query.filter_by(room_id=room.id, active=True).first()
+
+    return jsonify({
+        "invoice_code": inv.invoice_code,
+        "room_name": room.room_name,
+        "group_name": group.group_name if group else "Khách",
+        "elec_old": inv.old_electricity_index,
+        "elec_new": inv.new_electricity_index,
+        "elec_usage": inv.electricity_usage,
+        "elec_price": inv.applied_electricity_price,
+        "elec_cost": inv.electricity_cost,
+        "water_old": inv.old_water_index,
+        "water_new": inv.new_water_index,
+        "water_usage": inv.water_usage,
+        "water_price": inv.applied_water_price,
+        "water_cost": inv.water_cost,
+        "room_rent": inv.applied_room_rent,
+        "wifi_fee": inv.applied_wifi_fee,
+        "trash_fee": inv.applied_trash_fee,
+        "services_fee": inv.applied_wifi_fee + inv.applied_trash_fee,
+        "deducted": inv.deducted_deposit,
+        "total": inv.total_amount,
+        "created_at": inv.created_at.strftime('%d/%m/%Y')
+    }), 200
