@@ -103,16 +103,17 @@
                 </tr>
             </thead>
             <tbody>
-                {% for inv in room.invoices|sort(attribute='id', reverse=True) %}
+                {% for inv in room.invoices|selectattr('active', 'equalto', True)|sort(attribute='id', reverse=True) %}
                 <tr>
                     <td style="font-weight: 600; color: var(--text-main);">{{ inv.invoice_code or 'N/A' }}</td>
                     <td>{{ inv.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
                     <td style="font-weight: bold; color: {% if inv.total_amount < 0 %}red{% else %}#10b981{% endif %};">
                         {% if inv.total_amount < 0 %}{{ "{:,.0f}".format(inv.total_amount * -1) }}{% else %}{{ "{:,.0f}".format(inv.total_amount) }}{% endif %} đ
                     </td>
-                    <td style="text-align: right;">
-                        <button class="btn-core btn-outline-action" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;" onclick="viewOldInvoice({{ inv.id }})">Xem / Tải</button>
-                    </td>
+                <td style="text-align: right; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                    <button class="btn-core btn-outline-action" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;" onclick="viewOldInvoice({{ inv.id }})">Xem</button>
+                    <button class="btn-core btn-danger-action" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;" onclick="apiDelete('/api/invoices/{{ inv.id }}', 'Xác nhận xóa hóa đơn này?\n\nLưu ý: Hành động này sẽ xóa vĩnh viễn hóa đơn khỏi hệ thống và không thể hoàn tác.')">Xóa</button>
+                </td>
                 </tr>
                 {% else %}
                 <tr>

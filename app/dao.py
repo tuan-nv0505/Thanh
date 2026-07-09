@@ -223,3 +223,10 @@ def auth_user(username, password):
     password = str(hashlib.md5(password.strip().encode('utf-8')).hexdigest())
     return models.User.query.filter(models.User.username==username,
                              models.User.password==password).first()
+
+def soft_delete_invoice(invoice_id: int):
+    inv = models.Invoice.query.get(invoice_id)
+    if inv:
+        inv.active = False  # Đổi trạng thái thay vì db.session.delete(inv)
+        db.session.commit()
+    return inv

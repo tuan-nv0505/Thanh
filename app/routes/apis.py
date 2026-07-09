@@ -187,3 +187,13 @@ def get_invoice_by_code(invoice_code):
         "total": inv.total_amount,
         "created_at": inv.created_at.strftime('%d/%m/%Y')
     }), 200
+
+@api_bp.route('/invoices/<int:invoice_id>', methods=['DELETE'])
+@login_required
+def remove_invoice(invoice_id):
+    try:
+        dao.soft_delete_invoice(invoice_id)
+        return jsonify({"message": "Đã đưa hóa đơn vào thùng rác (Xóa mềm)"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
